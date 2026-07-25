@@ -13,8 +13,16 @@ dependencies = [
     "huggingface_hub>=0.24",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
 [project.scripts]
 hf-dataset-guard = "hf_dataset_guard.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["hf_dataset_guard*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

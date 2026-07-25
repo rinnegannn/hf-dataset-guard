@@ -121,8 +121,8 @@ test fixture demonstrating both the positive case and a plausible false positive
 ## Development
 
 ```bash
-pip install -e .
-python tests/test_scanner.py   # offline, runs against local fixtures
+pip install -e ".[dev]"
+python -m pytest
 ```
 
 ## License

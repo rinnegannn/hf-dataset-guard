@@ -113,7 +113,9 @@ REMOTE_DOWNLOAD_PATTERNS = [
     re.compile(r"os\.system\([\"']\s*(curl|wget)"),
 ]
 
-UNPINNED_GIT_DEP = re.compile(r"git\+(https?|git)://[^@\s]+(?!@)")
+UNPINNED_GIT_DEP = re.compile(
+    r"(?m)^\s*(?:-e\s+)?git\+(?:https?|git)://[^\s@]+(?:\s*(?:#.*)?)$"
+)
 
 
 # --------------------------------------------------------------------------
@@ -260,6 +262,15 @@ def check_dangerous_calls_ast(rel_path: str, text: str) -> List[Finding]:
         func = node.func
         module_attr = _resolve_call(func)
         if module_attr is None:
+            if isinstance(func, ast.Name) and func.id in ("eval", "exec", "compile", "__import__"):
+                findings.append(Finding(
+                    severity="critical",
+                    category="dangerous_call",
+                    rule_id="CODE004",
+                    message=f"Call to builtin {func.id}() can execute arbitrary code.",
+                    file=rel_path,
+                    line=getattr(node, "lineno", None),
+                ))
             continue
         module, attr = module_attr
 
@@ -278,15 +289,6 @@ def check_dangerous_calls_ast(rel_path: str, text: str) -> List[Finding]:
                 category="dangerous_call",
                 rule_id=rule_id,
                 message=f"Call to {module}.{attr}() can lead to arbitrary code execution.",
-                file=rel_path,
-                line=getattr(node, "lineno", None),
-            ))
-        elif isinstance(func, ast.Name) and func.id in ("eval", "exec", "compile", "__import__"):
-            findings.append(Finding(
-                severity="critical",
-                category="dangerous_call",
-                rule_id="CODE004",
-                message=f"Call to builtin {func.id}() can execute arbitrary code.",
                 file=rel_path,
                 line=getattr(node, "lineno", None),
             ))
