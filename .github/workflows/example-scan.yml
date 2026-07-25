@@ -1,0 +1,29 @@
+name: Scan dataset dependency
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset:
+        description: "HF dataset repo, e.g. org/dataset-name"
+        required: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install hf-dataset-guard
+        run: pip install hf-dataset-guard
+
+      - name: Scan dataset
+        run: hf-dataset-guard scan "${{ github.event.inputs.dataset }}" --format json --output report.json --fail-on high
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataset-scan-report
+          path: report.json

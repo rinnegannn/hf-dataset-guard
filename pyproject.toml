@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hf-dataset-guard"
+version = "0.1.0"
+description = "Static security scanner for Hugging Face dataset repos: pickle risk, remote code execution, template injection, exposed secrets."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "huggingface_hub>=0.24",
+]
+
+[project.scripts]
+hf-dataset-guard = "hf_dataset_guard.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["hf_dataset_guard*"]
