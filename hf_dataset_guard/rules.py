@@ -179,7 +179,7 @@ def check_secrets(rel_path: str, text: str) -> List[Finding]:
 def _redact(secret: str) -> str:
     if len(secret) <= 8:
         return "*" * len(secret)
-    return secret[:4] + "…redacted…" + secret[-4:]
+    return secret[:4] + "...redacted..." + secret[-4:]
 
 
 # --------------------------------------------------------------------------

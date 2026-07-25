@@ -36,7 +36,7 @@ def test_secret_is_redacted_in_output():
     findings = scan_directory(FIXTURES / "malicious_dataset")
     secret_findings = [f for f in findings if f.category == "exposed_secret"]
     assert secret_findings
-    assert "…redacted…" in secret_findings[0].evidence
+    assert "...redacted..." in secret_findings[0].evidence
 
 
 if __name__ == "__main__":

@@ -69,7 +69,7 @@ Dataset: demo/malicious-example
 
 [~]  FILE001  cache.pkl: File uses a pickle-based serialization format (.pkl)...
 [!!] SECRET04 loader.py: Possible Hugging Face access token found in file contents.
-     evidence: hf_a…redacted…6789
+     evidence: hf_a...redacted...6789
 [!]  CODE003  loader.py:20: Dataset config/loader renders a template with data...
 [!!] CODE001  loader.py:16: Call to subprocess.run() can lead to arbitrary code execution.
 [!!] FILE002  run_me: File has no executable extension but matches ELF executable magic bytes.
