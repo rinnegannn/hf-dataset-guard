@@ -85,6 +85,9 @@ Note: static analysis only. No file from this repo was executed or imported.
 | `1` | A finding reached the configured `--fail-on` threshold |
 | `2` | Target could not be scanned (bad repo id, network error, etc.) |
 
+Expected filesystem, network, and report-output failures are written to stderr
+without a traceback and return exit code `2`.
+
 ## GitHub Action
 
 See [`.github/workflows/example-scan.yml`](.github/workflows/example-scan.yml)

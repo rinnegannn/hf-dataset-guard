@@ -13,7 +13,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
   distinct CI exit code or an opt-in `--fail-on-incomplete` flag.
 - [ ] Validate CLI numeric options (`--max-files`, `--max-file-size`) as
   positive values and produce actionable errors.
-- [ ] Handle filesystem, network, and report-output errors consistently so
+- [x] Handle filesystem, network, and report-output errors consistently so
   expected operational failures return exit code 2 rather than a traceback.
 
 ## Priority 1 - detection quality and safety
