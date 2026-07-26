@@ -86,6 +86,16 @@ def test_skipped_link_is_not_scanned_and_is_in_reports(tmp_path: Path, monkeypat
     assert json.loads(render_json(result))["findings"][0]["rule_id"] == "SCAN001"
 
 
+def test_large_python_files_respect_max_file_size(tmp_path: Path):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "large_loader.py").write_text("eval('must not be scanned')")
+
+    findings = scan_directory(dataset, max_file_size_bytes=1)
+
+    assert not any(f.rule_id == "CODE004" for f in findings)
+
+
 if __name__ == "__main__":
     # Minimal runner so this works even without pytest installed.
     import traceback

@@ -20,7 +20,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 - [x] Enforce scan-root containment for local targets: do not follow symlinks
   or read files that resolve outside the requested directory, and report
   skipped links.
-- [ ] Apply a resource limit to Python source files as well as other file
+- [x] Apply a resource limit to Python source files as well as other file
   types; a large Python file must not bypass `--max-file-size`.
 - [ ] Record the resolved immutable Hugging Face commit SHA, tool version, and
   rule-set version in every report so scan results are reproducible.

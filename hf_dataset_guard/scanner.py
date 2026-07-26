@@ -58,7 +58,7 @@ def scan_directory(root: Path, max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_
         if resolved_path.suffix.lower() in SKIP_EXTENSIONS:
             continue
         try:
-            if resolved_path.stat().st_size > max_file_size_bytes and resolved_path.suffix.lower() not in (".py",):
+            if resolved_path.stat().st_size > max_file_size_bytes:
                 continue
         except OSError:
             continue
