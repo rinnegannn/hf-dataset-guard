@@ -11,17 +11,25 @@ and downloads files to a local directory for rules.py to read as text/bytes.
 from __future__ import annotations
 
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.utils import HfHubHTTPError
 
-# Cap total download size for a scan. Full dataset payloads (parquet
-# shards etc.) aren't needed to find loader-script / config vulnerabilities,
-# and scanner.py skips known-large data extensions anyway -- this is a
-# second guard in case of a repo with many small-but-numerous files.
+from .status import FileIssue
+
+# Cap the number of remote files considered for a scan. Full dataset payloads
+# (parquet shards etc.) aren't needed to find loader-script/config
+# vulnerabilities, and scanner.py skips known-large data extensions anyway.
 # Overridable via --max-files on the CLI.
 DEFAULT_MAX_FILES_TO_FETCH = 500
+
+
+@dataclass
+class DownloadResult:
+    path: Path
+    file_issues: list[FileIssue]
 
 
 def list_dataset_files(repo_id: str, revision: str = "main", token: str | None = None) -> list[str]:
@@ -37,21 +45,30 @@ def download_dataset_repo(
     revision: str = "main",
     max_files: int = DEFAULT_MAX_FILES_TO_FETCH,
     token: str | None = None,
-) -> Path:
+) -> DownloadResult:
     """Download every file in a dataset repo into a fresh temp directory
-    and return its path. Caller is responsible for cleanup.
+    and return its path plus any download omissions or failures.
+
+    Caller is responsible for cleaning up ``result.path``.
 
     token: an explicit HF token, or None to let huggingface_hub fall back
     to the HF_TOKEN environment variable / cached `huggingface-cli login`
     credentials automatically -- needed for private or gated datasets.
     """
     files = list_dataset_files(repo_id, revision=revision, token=token)
-    if len(files) > max_files:
-        files = files[:max_files]
+    selected_files = files[:max_files]
+    file_issues = [
+        FileIssue(
+            file=filename,
+            status="omitted",
+            reason=f"not downloaded because --max-files is limited to {max_files}",
+        )
+        for filename in files[max_files:]
+    ]
 
     dest_root = Path(tempfile.mkdtemp(prefix="hf-dataset-guard-"))
 
-    for filename in files:
+    for filename in selected_files:
         try:
             hf_hub_download(
                 repo_id=repo_id,
@@ -63,5 +80,12 @@ def download_dataset_repo(
             )
         except HfHubHTTPError:
             # A single missing/gated file shouldn't abort the whole scan.
+            file_issues.append(
+                FileIssue(
+                    file=filename,
+                    status="failed",
+                    reason="download failed",
+                )
+            )
             continue
-    return dest_root
+    return DownloadResult(path=dest_root, file_issues=file_issues)

@@ -7,7 +7,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 - [ ] Enforce a remote per-file download-size limit *before* downloading;
   current limits only prevent scanning large files after they are downloaded.
-- [ ] Report every skipped, failed, or omitted remote file, including when
+- [x] Report every skipped, failed, or omitted remote file, including when
   `--max-files` truncates the repository listing.
 - [ ] Make incomplete scans explicit in text and JSON output, and provide a
   distinct CI exit code or an opt-in `--fail-on-incomplete` flag.

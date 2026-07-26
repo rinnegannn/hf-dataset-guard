@@ -59,15 +59,22 @@ def main(argv=None) -> int:
         if is_local:
             local_dir = Path(args.target)
             findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)
+            file_issues = []
         else:
-            local_dir = download_dataset_repo(
+            download = download_dataset_repo(
                 args.target,
                 revision=args.revision,
                 max_files=args.max_files,
                 token=args.token,
             )
-            findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)
-        result = build_result(args.target, findings)
+            local_dir = download.path
+            file_issues = download.file_issues
+            findings = scan_directory(
+                local_dir,
+                max_file_size_bytes=args.max_file_size,
+                file_issues=file_issues,
+            )
+        result = build_result(args.target, findings, file_issues=file_issues)
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 2

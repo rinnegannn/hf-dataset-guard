@@ -60,9 +60,17 @@ def test_download_truncates_file_list_and_continues_after_file_error(tmp_path: P
 
     monkeypatch.setattr(fetch, "hf_hub_download", fake_download)
 
-    assert fetch.download_dataset_repo("owner/dataset", revision="v1", max_files=2, token="secret") == tmp_path / "download"
+    result = fetch.download_dataset_repo(
+        "owner/dataset", revision="v1", max_files=2, token="secret"
+    )
+
+    assert result.path == tmp_path / "download"
     assert [call["filename"] for call in calls] == ["one.py", "two.py"]
     assert all(call["repo_id"] == "owner/dataset" for call in calls)
     assert all(call["repo_type"] == "dataset" for call in calls)
     assert all(call["revision"] == "v1" for call in calls)
     assert all(call["token"] == "secret" for call in calls)
+    assert [(issue.file, issue.status) for issue in result.file_issues] == [
+        ("three.py", "omitted"),
+        ("two.py", "failed"),
+    ]

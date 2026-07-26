@@ -28,6 +28,21 @@ def render_terminal(result: ScanResult) -> str:
     lines.append(f"Dataset: {result.repo_id}")
     lines.append("")
 
+    if result.file_issues:
+        counts = {
+            status: sum(1 for issue in result.file_issues if issue.status == status)
+            for status in ("skipped", "failed", "omitted")
+        }
+        summary = ", ".join(
+            f"{count} {status}" for status, count in counts.items() if count
+        )
+        lines.append(f"Remote file coverage: {summary}")
+        for issue in result.file_issues:
+            lines.append(
+                f"  [{issue.status.upper()}] {issue.file}: {issue.reason}"
+            )
+        lines.append("")
+
     if not result.findings:
         lines.append("[+] No issues detected by current rule set.")
         return "\n".join(lines)
@@ -58,5 +73,6 @@ def render_json(result: ScanResult) -> str:
         "score": result.score,
         "risk_level": result.risk_level,
         "findings": [f.to_dict() for f in result.findings],
+        "file_issues": [issue.to_dict() for issue in result.file_issues],
     }
     return json.dumps(payload, indent=2)

@@ -125,3 +125,12 @@ def test_scan_file_only_parses_known_text_extensions(tmp_path: Path):
     binary_path = tmp_path / "payload.dat"
     binary_path.write_text("hf_" + "a" * 30)
     assert scan_file("payload.dat", binary_path) == []
+
+
+def test_scan_file_records_read_failures(tmp_path: Path):
+    file_issues = []
+
+    assert scan_file("missing.txt", tmp_path / "missing.txt", file_issues) == []
+    assert [(issue.file, issue.status) for issue in file_issues] == [
+        ("missing.txt", "failed")
+    ]

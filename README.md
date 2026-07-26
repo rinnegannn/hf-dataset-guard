@@ -61,6 +61,10 @@ hf-dataset-guard scan username/dataset --max-files 200 --max-file-size 500000
 For private or gated repositories, set the `HF_TOKEN` environment variable,
 log in via `huggingface-cli login`, or pass `--token` explicitly.
 
+Remote scan reports include every file that was skipped, failed to download,
+or omitted because of `--max-files`. JSON reports expose these entries in the
+`file_issues` array with the file path, status, and reason.
+
 Example output:
 
 ```

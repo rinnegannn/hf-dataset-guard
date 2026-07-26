@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, List
 
+from .status import FileIssue
+
 # --------------------------------------------------------------------------
 # Finding model
 # --------------------------------------------------------------------------
@@ -323,7 +325,11 @@ def _has_safe_loader(call_node: ast.Call) -> bool:
 TEXT_SCANNABLE_EXTENSIONS = {".py", ".json", ".yaml", ".yml", ".txt", ".cfg", ".ini", ".md"}
 
 
-def scan_file(rel_path: str, absolute_path: Path) -> List[Finding]:
+def scan_file(
+    rel_path: str,
+    absolute_path: Path,
+    file_issues: list[FileIssue] | None = None,
+) -> List[Finding]:
     findings: List[Finding] = []
     findings.extend(check_pickle_like_files(rel_path))
 
@@ -331,6 +337,10 @@ def scan_file(rel_path: str, absolute_path: Path) -> List[Finding]:
         with open(absolute_path, "rb") as fh:
             head = fh.read(16)
     except OSError:
+        if file_issues is not None:
+            file_issues.append(
+                FileIssue(rel_path, "failed", "could not read file contents")
+            )
         return findings
     findings.extend(check_unexpected_executable(rel_path, head))
 
@@ -339,6 +349,10 @@ def scan_file(rel_path: str, absolute_path: Path) -> List[Finding]:
         try:
             text = absolute_path.read_text(errors="ignore")
         except OSError:
+            if file_issues is not None:
+                file_issues.append(
+                    FileIssue(rel_path, "failed", "could not read file contents")
+                )
             return findings
 
         findings.extend(check_secrets(rel_path, text))

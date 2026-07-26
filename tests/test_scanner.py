@@ -39,6 +39,19 @@ def test_secret_is_redacted_in_output():
     assert "...redacted..." in secret_findings[0].evidence
 
 
+def test_skipped_files_are_recorded(tmp_path: Path):
+    (tmp_path / "data.csv").write_text("value")
+    (tmp_path / "large.txt").write_text("too large")
+    file_issues = []
+
+    scan_directory(tmp_path, max_file_size_bytes=3, file_issues=file_issues)
+
+    assert {(issue.file, issue.status) for issue in file_issues} == {
+        ("data.csv", "skipped"),
+        ("large.txt", "skipped"),
+    }
+
+
 if __name__ == "__main__":
     # Minimal runner so this works even without pytest installed.
     import traceback
