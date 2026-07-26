@@ -17,6 +17,20 @@ from .report import render_terminal, render_json
 FAIL_ON_THRESHOLDS = {"low": 1, "medium": 15, "high": 40, "critical": 70}
 
 
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            f"must be a positive integer; received {value!r}"
+        ) from error
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError(
+            f"must be greater than zero; received {value!r}"
+        )
+    return parsed
+
+
 def _add_scan_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("target", help="Dataset repo (username/dataset) or a local directory path")
     parser.add_argument("--revision", default="main", help="Git revision/branch for remote repos (default: main)")
@@ -29,11 +43,11 @@ def _add_scan_args(parser: argparse.ArgumentParser) -> None:
         help="Exit 1 if risk reaches this level or higher (for CI use).",
     )
     parser.add_argument(
-        "--max-files", type=int, default=DEFAULT_MAX_FILES_TO_FETCH,
+        "--max-files", type=_positive_int, default=DEFAULT_MAX_FILES_TO_FETCH,
         help=f"Max number of files to download and scan from a remote repo (default: {DEFAULT_MAX_FILES_TO_FETCH})",
     )
     parser.add_argument(
-        "--max-file-size", type=int, default=DEFAULT_MAX_FILE_SIZE_BYTES,
+        "--max-file-size", type=_positive_int, default=DEFAULT_MAX_FILE_SIZE_BYTES,
         help=f"Skip scanning any single file above this size in bytes (default: {DEFAULT_MAX_FILE_SIZE_BYTES})",
     )
     parser.add_argument(

@@ -68,3 +68,24 @@ def test_invalid_command_line_exits_with_usage_error():
     with pytest.raises(SystemExit) as error:
         cli.main([])
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("option", "value", "message"),
+    [
+        ("--max-files", "0", "must be greater than zero"),
+        ("--max-files", "-1", "must be greater than zero"),
+        ("--max-file-size", "0", "must be greater than zero"),
+        ("--max-file-size", "-1", "must be greater than zero"),
+        ("--max-files", "many", "must be a positive integer"),
+    ],
+)
+def test_numeric_limits_must_be_positive(option, value, message, capsys):
+    with pytest.raises(SystemExit) as error:
+        cli.main(["scan", "owner/dataset", option, value])
+
+    assert error.value.code == 2
+    stderr = capsys.readouterr().err
+    assert f"argument {option}" in stderr
+    assert message in stderr
+    assert repr(value) in stderr

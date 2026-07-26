@@ -58,6 +58,8 @@ hf-dataset-guard scan username/dataset --revision 4f36a90
 hf-dataset-guard scan username/dataset --max-files 200 --max-file-size 500000
 ```
 
+`--max-files` and `--max-file-size` must both be positive integers.
+
 For private or gated repositories, set the `HF_TOKEN` environment variable,
 log in via `huggingface-cli login`, or pass `--token` explicitly.
 
