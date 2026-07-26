@@ -4,7 +4,9 @@ from pathlib import Path
 import pytest
 
 from hf_dataset_guard import cli
+from hf_dataset_guard.fetch import DownloadResult
 from hf_dataset_guard.rules import Finding
+from hf_dataset_guard.status import FileIssue
 
 
 def test_local_scan_writes_json_report(tmp_path: Path, capsys):
@@ -35,13 +37,16 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
 
     def fake_download(repo_id, revision, max_files, token):
         calls.update(repo_id=repo_id, revision=revision, max_files=max_files, token=token)
-        return downloaded
+        return DownloadResult(
+            downloaded,
+            [FileIssue("missing.py", "failed", "download failed")],
+        )
 
     monkeypatch.setattr(cli, "download_dataset_repo", fake_download)
     monkeypatch.setattr(
         cli,
         "scan_directory",
-        lambda root, max_file_size_bytes: [
+        lambda root, max_file_size_bytes, file_issues: [
             Finding("low", "test", "TEST001", "Test finding", "loader.py")
         ],
     )

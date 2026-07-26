@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 from .rules import Finding, SEVERITY_WEIGHT
+from .status import FileIssue
 
 
 @dataclass
@@ -12,6 +13,7 @@ class ScanResult:
     findings: List[Finding]
     score: int
     risk_level: str
+    file_issues: List[FileIssue] = field(default_factory=list)
 
 
 def score_findings(findings: List[Finding]) -> tuple[int, str]:
@@ -40,6 +42,16 @@ def score_findings(findings: List[Finding]) -> tuple[int, str]:
     return score, level
 
 
-def build_result(repo_id: str, findings: List[Finding]) -> ScanResult:
+def build_result(
+    repo_id: str,
+    findings: List[Finding],
+    file_issues: List[FileIssue] | None = None,
+) -> ScanResult:
     score, level = score_findings(findings)
-    return ScanResult(repo_id=repo_id, findings=findings, score=score, risk_level=level)
+    return ScanResult(
+        repo_id=repo_id,
+        findings=findings,
+        score=score,
+        risk_level=level,
+        file_issues=file_issues if file_issues is not None else [],
+    )
