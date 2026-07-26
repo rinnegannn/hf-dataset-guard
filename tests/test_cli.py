@@ -64,6 +64,48 @@ def test_scan_error_returns_exit_code_two(tmp_path: Path, monkeypatch, capsys):
     assert "Error: not found" in capsys.readouterr().err
 
 
+def test_local_filesystem_error_returns_exit_code_two(
+    tmp_path: Path, monkeypatch, capsys
+):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    monkeypatch.setattr(
+        cli,
+        "scan_directory",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            OSError("permission denied")
+        ),
+    )
+
+    assert cli.main(["scan", str(dataset)]) == 2
+    assert "Error: permission denied" in capsys.readouterr().err
+
+
+def test_report_write_error_returns_exit_code_two(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    output = tmp_path / "missing" / "report.json"
+
+    assert cli.main(["scan", str(dataset), "--output", str(output)]) == 2
+    stderr = capsys.readouterr().err
+    assert f"Error: Could not write report to '{output}'" in stderr
+    assert "Traceback" not in stderr
+
+
+def test_remote_download_is_cleaned_up_after_report_error(
+    tmp_path: Path, monkeypatch
+):
+    downloaded = tmp_path / "downloaded"
+    downloaded.mkdir()
+    monkeypatch.setattr(
+        cli, "download_dataset_repo", lambda *args, **kwargs: downloaded
+    )
+    output = tmp_path / "missing" / "report.txt"
+
+    assert cli.main(["scan", "owner/dataset", "--output", str(output)]) == 2
+    assert not downloaded.exists()
+
+
 def test_invalid_command_line_exits_with_usage_error():
     with pytest.raises(SystemExit) as error:
         cli.main([])

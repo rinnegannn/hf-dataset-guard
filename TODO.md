@@ -15,7 +15,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
   `--fail-on-incomplete` flag.
 - [ ] Validate CLI numeric options (`--max-files`, `--max-file-size`) as
   positive values and produce actionable errors.
-- [ ] Handle filesystem, network, and report-output errors consistently so
+- [x] Handle filesystem, network, and report-output errors consistently so
   expected operational failures return exit code 2 rather than a traceback.
 - [ ] Enforce scan-root containment for local targets: do not follow symlinks
   or read files that resolve outside the requested directory, and report

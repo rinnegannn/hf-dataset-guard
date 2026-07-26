@@ -68,21 +68,26 @@ def main(argv=None) -> int:
             )
             findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)
         result = build_result(args.target, findings)
-    except RuntimeError as e:
-        print(f"Error: {e}", file=sys.stderr)
+
+        output_text = render_json(result) if args.format == "json" else render_terminal(result)
+
+        if args.output:
+            try:
+                Path(args.output).write_text(output_text, encoding="utf-8")
+            except OSError as error:
+                raise RuntimeError(
+                    f"Could not write report to '{args.output}': {error}"
+                ) from error
+        else:
+            print(output_text)
+    except (OSError, RuntimeError, UnicodeError) as error:
+        print(f"Error: {error}", file=sys.stderr)
         return 2
     finally:
         # Only clean up directories we created ourselves (remote downloads),
         # never the user's own local checkout.
         if local_dir is not None and not is_local:
             shutil.rmtree(local_dir, ignore_errors=True)
-
-    output_text = render_json(result) if args.format == "json" else render_terminal(result)
-
-    if args.output:
-        Path(args.output).write_text(output_text)
-    else:
-        print(output_text)
 
     if args.fail_on != "none" and result.score >= FAIL_ON_THRESHOLDS[args.fail_on]:
         return 1
