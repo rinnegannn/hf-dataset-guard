@@ -19,19 +19,49 @@ DEFAULT_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # don't slurp huge files into mem
 
 
 def scan_directory(root: Path, max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES) -> List[Finding]:
+    root = root.resolve()
     findings: List[Finding] = []
     for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
         rel_path = str(path.relative_to(root))
 
-        if path.suffix.lower() in SKIP_EXTENSIONS:
+        # Never follow links supplied by a scanned directory. A local target
+        # may contain a link to any readable location on the host, so even a
+        # harmless-looking file link is outside this scanner's trust boundary.
+        if path.is_symlink():
+            findings.append(Finding(
+                severity="info",
+                category="scan_boundary",
+                rule_id="SCAN001",
+                message="Skipped symlink to keep the scan inside the requested directory.",
+                file=rel_path,
+            ))
+            continue
+
+        try:
+            resolved_path = path.resolve(strict=True)
+            resolved_path.relative_to(root)
+        except ValueError:
+            findings.append(Finding(
+                severity="info",
+                category="scan_boundary",
+                rule_id="SCAN001",
+                message="Skipped path that resolves outside the requested directory.",
+                file=rel_path,
+            ))
+            continue
+        except OSError:
+            continue
+
+        if not resolved_path.is_file():
+            continue
+
+        if resolved_path.suffix.lower() in SKIP_EXTENSIONS:
             continue
         try:
-            if path.stat().st_size > max_file_size_bytes and path.suffix.lower() not in (".py",):
+            if resolved_path.stat().st_size > max_file_size_bytes and resolved_path.suffix.lower() not in (".py",):
                 continue
         except OSError:
             continue
 
-        findings.extend(scan_file(rel_path, path))
+        findings.extend(scan_file(rel_path, resolved_path))
     return findings

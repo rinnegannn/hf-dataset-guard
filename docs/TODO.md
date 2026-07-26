@@ -17,7 +17,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
   positive values and produce actionable errors.
 - [ ] Handle filesystem, network, and report-output errors consistently so
   expected operational failures return exit code 2 rather than a traceback.
-- [ ] Enforce scan-root containment for local targets: do not follow symlinks
+- [x] Enforce scan-root containment for local targets: do not follow symlinks
   or read files that resolve outside the requested directory, and report
   skipped links.
 - [ ] Apply a resource limit to Python source files as well as other file

@@ -1,8 +1,12 @@
 import sys
 from pathlib import Path
+import json
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from hf_dataset_guard.report import render_json, render_terminal
 from hf_dataset_guard.scanner import scan_directory
 from hf_dataset_guard.scorer import build_result
 
@@ -37,6 +41,49 @@ def test_secret_is_redacted_in_output():
     secret_findings = [f for f in findings if f.category == "exposed_secret"]
     assert secret_findings
     assert "...redacted..." in secret_findings[0].evidence
+
+
+def test_local_scan_skips_and_reports_symlinked_files(tmp_path: Path):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    outside_file = tmp_path / "outside.py"
+    outside_file.write_text("eval('sensitive host file')")
+    linked_file = dataset / "linked.py"
+
+    try:
+        linked_file.symlink_to(outside_file)
+    except OSError as error:
+        pytest.skip(f"Symlinks are unavailable in this test environment: {error}")
+
+    findings = scan_directory(dataset)
+
+    assert not any(f.rule_id == "CODE004" for f in findings)
+    skipped = [f for f in findings if f.rule_id == "SCAN001"]
+    assert len(skipped) == 1
+    assert skipped[0].severity == "info"
+    assert skipped[0].file == "linked.py"
+
+
+def test_skipped_link_is_not_scanned_and_is_in_reports(tmp_path: Path, monkeypatch):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    linked_file = dataset / "linked.py"
+    linked_file.write_text("eval('must not be scanned')")
+    path_type = type(linked_file)
+    original_is_symlink = path_type.is_symlink
+
+    monkeypatch.setattr(
+        path_type,
+        "is_symlink",
+        lambda path: path == linked_file or original_is_symlink(path),
+    )
+
+    findings = scan_directory(dataset)
+    result = build_result("test/symlink", findings)
+
+    assert not any(f.rule_id == "CODE004" for f in findings)
+    assert "SCAN001" in render_terminal(result)
+    assert json.loads(render_json(result))["findings"][0]["rule_id"] == "SCAN001"
 
 
 if __name__ == "__main__":
