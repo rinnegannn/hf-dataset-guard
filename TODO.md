@@ -55,8 +55,10 @@ v0.1 prototype to a dependable, professional open-source security tool.
   and dependency/security checks on pull requests.
 - [ ] Add a release workflow that builds distributions, validates them, and
   publishes tagged releases to PyPI.
-- [ ] Add `CONTRIBUTING.md` with local setup, test commands, rule-design
+- [x] Add `CONTRIBUTING.md` with local setup, test commands, rule-design
   guidance, and pull-request expectations.
+- [x] Publish an architecture overview describing components, trust boundaries,
+  and the extension model.
 - [ ] Add `CODE_OF_CONDUCT.md`, `SECURITY.md` (private vulnerability reporting
   process), and issue/PR templates.
 - [ ] Add a `CHANGELOG.md` and follow semantic versioning.
