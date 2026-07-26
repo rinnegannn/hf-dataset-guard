@@ -11,23 +11,43 @@ and downloads files to a local directory for rules.py to read as text/bytes.
 from __future__ import annotations
 
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
-from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub import HfApi, RepoFile, hf_hub_download
 from huggingface_hub.utils import HfHubHTTPError
 
-# Cap total download size for a scan. Full dataset payloads (parquet
-# shards etc.) aren't needed to find loader-script / config vulnerabilities,
-# and scanner.py skips known-large data extensions anyway -- this is a
-# second guard in case of a repo with many small-but-numerous files.
+from .limits import DEFAULT_MAX_FILE_SIZE_BYTES, DEFAULT_MAX_FILES_TO_FETCH
+
+# Cap the number of remote files considered for a scan. Full dataset payloads
+# (parquet shards etc.) aren't needed to find loader-script/config
+# vulnerabilities, and scanner.py skips known-large data extensions anyway.
 # Overridable via --max-files on the CLI.
-DEFAULT_MAX_FILES_TO_FETCH = 500
 
 
-def list_dataset_files(repo_id: str, revision: str = "main", token: str | None = None) -> list[str]:
+@dataclass(frozen=True)
+class DatasetFile:
+    path: str
+    size: int
+
+
+def list_dataset_files(
+    repo_id: str, revision: str = "main", token: str | None = None
+) -> list[DatasetFile]:
+    """List all files and their remote sizes without downloading contents."""
     api = HfApi(token=token)
     try:
-        return api.list_repo_files(repo_id=repo_id, repo_type="dataset", revision=revision)
+        entries = api.list_repo_tree(
+            repo_id=repo_id,
+            repo_type="dataset",
+            revision=revision,
+            recursive=True,
+        )
+        return [
+            DatasetFile(path=entry.path, size=entry.size)
+            for entry in entries
+            if isinstance(entry, RepoFile)
+        ]
     except HfHubHTTPError as e:
         raise RuntimeError(f"Could not list files for dataset '{repo_id}': {e}") from e
 
@@ -36,10 +56,14 @@ def download_dataset_repo(
     repo_id: str,
     revision: str = "main",
     max_files: int = DEFAULT_MAX_FILES_TO_FETCH,
+    max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
     token: str | None = None,
 ) -> Path:
-    """Download every file in a dataset repo into a fresh temp directory
-    and return its path. Caller is responsible for cleanup.
+    """Download eligible files in a dataset repo into a fresh temp directory.
+
+    Remote size metadata is checked before each download, so files larger than
+    ``max_file_size_bytes`` are never requested. Caller is responsible for
+    cleanup.
 
     token: an explicit HF token, or None to let huggingface_hub fall back
     to the HF_TOKEN environment variable / cached `huggingface-cli login`
@@ -51,11 +75,13 @@ def download_dataset_repo(
 
     dest_root = Path(tempfile.mkdtemp(prefix="hf-dataset-guard-"))
 
-    for filename in files:
+    for file in files:
+        if file.size > max_file_size_bytes:
+            continue
         try:
             hf_hub_download(
                 repo_id=repo_id,
-                filename=filename,
+                filename=file.path,
                 repo_type="dataset",
                 revision=revision,
                 local_dir=str(dest_root),

@@ -5,7 +5,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 ## Priority 0 - trustworthy scan boundaries
 
-- [ ] Enforce a remote per-file download-size limit *before* downloading;
+- [x] Enforce a remote per-file download-size limit *before* downloading;
   current limits only prevent scanning large files after they are downloaded.
 - [ ] Report every skipped, failed, or omitted file for local and remote scans,
   including when `--max-files` truncates a repository listing, a file exceeds

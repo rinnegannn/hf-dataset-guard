@@ -10,12 +10,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
+from .limits import DEFAULT_MAX_FILE_SIZE_BYTES
 from .rules import Finding, scan_file
 
 # Skip large data payloads that aren't useful to scan as text and would
 # just slow things down (real datasets can have huge parquet/arrow shards).
 SKIP_EXTENSIONS = {".parquet", ".arrow", ".csv", ".jsonl", ".zip", ".tar", ".gz", ".npy", ".npz"}
-DEFAULT_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # don't slurp huge files into memory
 
 
 def scan_directory(root: Path, max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES) -> List[Finding]:
