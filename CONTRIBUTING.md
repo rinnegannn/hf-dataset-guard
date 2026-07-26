@@ -56,5 +56,4 @@ behavioural trade-offs. Keep commits and pull requests narrowly scoped so they
 can be reviewed and reverted easily.
 
 Please do not use pull requests to disclose a suspected security vulnerability.
-Until `SECURITY.md` is added, contact the maintainers privately through the
-repository owner instead.
+Follow the private reporting process in [SECURITY.md](SECURITY.md) instead.

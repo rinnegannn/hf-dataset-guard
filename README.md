@@ -135,7 +135,7 @@ pip install -e ".[dev]"
 python -m pytest
 ```
 
-See the [contribution guide](docs/CONTRIBUTING.md), [rules reference](docs/RULES.md),
+See the [contribution guide](CONTRIBUTING.md), [rules reference](docs/RULES.md),
 [configuration reference](docs/CONFIGURATION.md), [CI guide](docs/CI.md), and
 [threat model and privacy statement](docs/THREAT_MODEL.md).
 
