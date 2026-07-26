@@ -5,8 +5,9 @@ import shutil
 import sys
 from pathlib import Path
 
-from .fetch import DEFAULT_MAX_FILES_TO_FETCH, download_dataset_repo
-from .scanner import DEFAULT_MAX_FILE_SIZE_BYTES, scan_directory
+from .fetch import download_dataset_repo
+from .limits import DEFAULT_MAX_FILE_SIZE_BYTES, DEFAULT_MAX_FILES_TO_FETCH
+from .scanner import scan_directory
 from .scorer import build_result
 from .report import render_terminal, render_json
 
@@ -34,7 +35,11 @@ def _add_scan_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--max-file-size", type=int, default=DEFAULT_MAX_FILE_SIZE_BYTES,
-        help=f"Skip scanning any single file above this size in bytes (default: {DEFAULT_MAX_FILE_SIZE_BYTES})",
+        help=(
+            "Skip remote files above this size before download; also limits local "
+            "non-Python file scanning "
+            f"(default: {DEFAULT_MAX_FILE_SIZE_BYTES})"
+        ),
     )
     parser.add_argument(
         "--token", default=None,
@@ -64,6 +69,7 @@ def main(argv=None) -> int:
                 args.target,
                 revision=args.revision,
                 max_files=args.max_files,
+                max_file_size_bytes=args.max_file_size,
                 token=args.token,
             )
             findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)

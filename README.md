@@ -54,7 +54,7 @@ hf-dataset-guard scan username/dataset --fail-on high
 # Pin a revision
 hf-dataset-guard scan username/dataset --revision 4f36a90
 
-# Limit remote inspection
+# Limit remote downloads and inspection
 hf-dataset-guard scan username/dataset --max-files 200 --max-file-size 500000
 ```
 
@@ -92,9 +92,10 @@ for a drop-in workflow that scans a dataset dependency before it's used in CI.
 
 ## How it works
 
-1. `fetch.py` downloads a dataset repo's files locally via the official
-   `huggingface_hub` client (no custom HTTP/auth handling; it already
-   supports revisions, gated repos, and retries correctly).
+1. `fetch.py` reads file-size metadata and downloads eligible files locally
+   via the official `huggingface_hub` client. Files over `--max-file-size`
+   are rejected before download. The client supports revisions, gated repos,
+   and retries.
 2. `scanner.py` walks the local copy, skipping large binary data shards
    (parquet/arrow/etc., since those aren't where loader-script logic lives).
 3. `rules.py` runs a mix of regex and light AST checks against each file.

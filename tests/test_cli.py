@@ -33,8 +33,14 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
     downloaded.mkdir()
     calls = {}
 
-    def fake_download(repo_id, revision, max_files, token):
-        calls.update(repo_id=repo_id, revision=revision, max_files=max_files, token=token)
+    def fake_download(repo_id, revision, max_files, max_file_size_bytes, token):
+        calls.update(
+            repo_id=repo_id,
+            revision=revision,
+            max_files=max_files,
+            max_file_size_bytes=max_file_size_bytes,
+            token=token,
+        )
         return downloaded
 
     monkeypatch.setattr(cli, "download_dataset_repo", fake_download)
@@ -52,7 +58,7 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
     ]) == 0
     assert calls == {
         "repo_id": "owner/dataset", "revision": "abc123", "max_files": 12,
-        "token": "token-value",
+        "max_file_size_bytes": 34, "token": "token-value",
     }
     assert not downloaded.exists()
 
