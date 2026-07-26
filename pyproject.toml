@@ -9,14 +9,35 @@ description = "Static security scanner for Hugging Face dataset repos: pickle ri
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+authors = [
+    { name = "hf-dataset-guard maintainers" },
+]
+keywords = ["hugging-face", "datasets", "security", "static-analysis", "supply-chain"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
 dependencies = [
     "huggingface_hub>=0.24",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8",
+    "build>=1.2,<2",
+    "pytest>=8,<10",
 ]
+
+[project.urls]
+Homepage = "https://github.com/rinnegannn/hf-dataset-guard"
+Repository = "https://github.com/rinnegannn/hf-dataset-guard"
+Issues = "https://github.com/rinnegannn/hf-dataset-guard/issues"
 
 [project.scripts]
 hf-dataset-guard = "hf_dataset_guard.cli:main"

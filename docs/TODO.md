@@ -39,7 +39,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
   ID and file path, with an audit trail in reports.
 - [ ] Add SARIF output for GitHub code scanning.
 - [ ] Support commit-to-commit risk comparison and baseline reports.
-- [ ] Document rule coverage, expected false positives, and known detection
+- [x] Document rule coverage, expected false positives, and known detection
   limitations.
 
 ## Priority 2 - tests and quality gates
@@ -68,22 +68,22 @@ v0.1 prototype to a dependable, professional open-source security tool.
   guidance, and pull-request expectations.
 - [x] Publish an architecture overview describing components, trust boundaries,
   and the extension model.
-- [ ] Add `CODE_OF_CONDUCT.md`, `SECURITY.md` (private vulnerability reporting
+- [x] Add `CODE_OF_CONDUCT.md`, `SECURITY.md` (private vulnerability reporting
   process), and issue/PR templates.
-- [ ] Add a `CHANGELOG.md` and follow semantic versioning.
+- [x] Add a `CHANGELOG.md` and follow semantic versioning.
 - [ ] Declare supported Python versions and classifiers in `pyproject.toml`.
 - [ ] Add optional development dependencies and a single documented command
   for running all local checks.
 - [ ] Pin or constrain development tooling and document the dependency update
   policy.
-- [ ] Add package metadata: project URLs, keywords, author/maintainer,
+- [x] Add package metadata: project URLs, keywords, author/maintainer,
   license classifier, and a repository link.
 - [ ] Add a concise README badge set (CI, PyPI, Python versions, license),
   installation verification, configuration reference, and JSON/SARIF examples.
-- [ ] Publish a threat model and privacy statement explaining what is fetched,
+- [x] Publish a threat model and privacy statement explaining what is fetched,
   retained, logged, and never executed.
 - [ ] Add a tested installation smoke test from the built wheel in CI.
-- [ ] Create a `docs/` site or focused documentation pages for rules,
+- [x] Create a `docs/` site or focused documentation pages for rules,
   configuration, CI integration, and release notes.
 
 ## Release readiness

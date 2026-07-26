@@ -2,6 +2,10 @@
 
 Static security scanner for Hugging Face dataset repos.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Repository](https://img.shields.io/badge/GitHub-hf--dataset--guard-181717?logo=github)](https://github.com/rinnegannn/hf-dataset-guard)
+
 ```
 hf-dataset-guard scan username/dataset-name
 ```
@@ -60,6 +64,12 @@ hf-dataset-guard scan username/dataset --max-files 200 --max-file-size 500000
 
 For private or gated repositories, set the `HF_TOKEN` environment variable,
 log in via `huggingface-cli login`, or pass `--token` explicitly.
+
+Verify an installation with:
+
+```bash
+hf-dataset-guard scan --help
+```
 
 Example output:
 
@@ -124,6 +134,10 @@ test fixture demonstrating both the positive case and a plausible false positive
 pip install -e ".[dev]"
 python -m pytest
 ```
+
+See the [contribution guide](docs/CONTRIBUTING.md), [rules reference](docs/RULES.md),
+[configuration reference](docs/CONFIGURATION.md), [CI guide](docs/CI.md), and
+[threat model and privacy statement](docs/THREAT_MODEL.md).
 
 ## License
 
