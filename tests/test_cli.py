@@ -68,3 +68,20 @@ def test_invalid_command_line_exits_with_usage_error():
     with pytest.raises(SystemExit) as error:
         cli.main([])
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize("invalid_val", ["0", "-1", "-50"])
+def test_invalid_max_files_exits_with_error(invalid_val: str, capsys):
+    with pytest.raises(SystemExit) as error:
+        cli.main(["scan", "some/repo", "--max-files", invalid_val])
+    assert error.value.code == 2
+    assert "--max-files must be a positive integer" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("invalid_val", ["0", "-1", "-100"])
+def test_invalid_max_file_size_exits_with_error(invalid_val: str, capsys):
+    with pytest.raises(SystemExit) as error:
+        cli.main(["scan", "some/repo", "--max-file-size", invalid_val])
+    assert error.value.code == 2
+    assert "--max-file-size must be a positive integer" in capsys.readouterr().err
+

@@ -53,6 +53,11 @@ def main(argv=None) -> int:
 
     args = parser.parse_args(argv)
 
+    if args.max_files <= 0:
+        parser.error("--max-files must be a positive integer (> 0)")
+    if args.max_file_size <= 0:
+        parser.error("--max-file-size must be a positive integer (> 0)")
+
     is_local = Path(args.target).is_dir()
     local_dir = None
     try:
