@@ -33,8 +33,8 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
     downloaded.mkdir()
     calls = {}
 
-    def fake_download(repo_id, revision, max_files, token):
-        calls.update(repo_id=repo_id, revision=revision, max_files=max_files, token=token)
+    def fake_download(repo_id, revision, max_files, max_file_size_bytes, token):
+        calls.update(repo_id=repo_id, revision=revision, max_files=max_files, max_file_size_bytes=max_file_size_bytes, token=token)
         return downloaded
 
     monkeypatch.setattr(cli, "download_dataset_repo", fake_download)
@@ -51,7 +51,7 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
         "--max-file-size", "34", "--token", "token-value",
     ]) == 0
     assert calls == {
-        "repo_id": "owner/dataset", "revision": "abc123", "max_files": 12,
+        "repo_id": "owner/dataset", "revision": "abc123", "max_files": 12, "max_file_size_bytes": 34,
         "token": "token-value",
     }
     assert not downloaded.exists()
@@ -84,4 +84,3 @@ def test_invalid_max_file_size_exits_with_error(invalid_val: str, capsys):
         cli.main(["scan", "some/repo", "--max-file-size", invalid_val])
     assert error.value.code == 2
     assert "--max-file-size must be a positive integer" in capsys.readouterr().err
-

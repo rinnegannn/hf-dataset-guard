@@ -5,8 +5,8 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 ## Priority 0 - trustworthy scan boundaries
 
-- [ ] Enforce a remote per-file download-size limit *before* downloading;
-  current limits only prevent scanning large files after they are downloaded.
+- [x] Enforce a remote per-file download-size limit *before* downloading,
+  using Hugging Face repository-tree metadata.
 - [ ] Report every skipped, failed, or omitted file for local and remote scans,
   including when `--max-files` truncates a repository listing, a file exceeds
   a limit, or directory traversal fails.
@@ -51,7 +51,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 - [x] Mock Hugging Face API interactions for listing, download forwarding,
   truncation, and per-file download failures.
 - [ ] Extend these tests alongside pending alias detection, real pagination,
-  private/gated repository handling, and pre-download size-limit features.
+  and private/gated repository handling.
 - [ ] Add regression fixtures for each previously fixed bug.
 - [ ] Add coverage reporting and set a meaningful minimum coverage threshold.
 - [ ] Add linting, formatting, type checking, and security/dependency checks

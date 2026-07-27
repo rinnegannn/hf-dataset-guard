@@ -16,6 +16,8 @@ from pathlib import Path
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.utils import HfHubHTTPError
 
+from .scanner import DEFAULT_MAX_FILE_SIZE_BYTES
+
 # Cap total download size for a scan. Full dataset payloads (parquet
 # shards etc.) aren't needed to find loader-script / config vulnerabilities,
 # and scanner.py skips known-large data extensions anyway -- this is a
@@ -32,11 +34,26 @@ def list_dataset_files(repo_id: str, revision: str = "main", token: str | None =
         raise RuntimeError(f"Could not list files for dataset '{repo_id}': {e}") from e
 
 
+def list_dataset_file_metadata(repo_id: str, revision: str = "main", token: str | None = None) -> list[object]:
+    """Return recursive repository-tree entries, including each file's size."""
+    api = HfApi(token=token)
+    try:
+        return list(api.list_repo_tree(
+            repo_id=repo_id,
+            repo_type="dataset",
+            revision=revision,
+            recursive=True,
+        ))
+    except HfHubHTTPError as e:
+        raise RuntimeError(f"Could not list files for dataset '{repo_id}': {e}") from e
+
+
 def download_dataset_repo(
     repo_id: str,
     revision: str = "main",
     max_files: int = DEFAULT_MAX_FILES_TO_FETCH,
     token: str | None = None,
+    max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
 ) -> Path:
     """Download every file in a dataset repo into a fresh temp directory
     and return its path. Caller is responsible for cleanup.
@@ -45,7 +62,13 @@ def download_dataset_repo(
     to the HF_TOKEN environment variable / cached `huggingface-cli login`
     credentials automatically -- needed for private or gated datasets.
     """
-    files = list_dataset_files(repo_id, revision=revision, token=token)
+    files = [
+        entry.path
+        for entry in list_dataset_file_metadata(repo_id, revision=revision, token=token)
+        if isinstance(getattr(entry, "path", None), str)
+        and isinstance(getattr(entry, "size", None), int)
+        and 0 <= entry.size <= max_file_size_bytes
+    ]
     if len(files) > max_files:
         files = files[:max_files]
 

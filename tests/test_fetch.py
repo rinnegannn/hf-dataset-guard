@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -47,8 +48,42 @@ def test_list_dataset_files_wraps_hub_errors(monkeypatch):
         fetch.list_dataset_files("owner/missing")
 
 
-def test_download_truncates_file_list_and_continues_after_file_error(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(fetch, "list_dataset_files", lambda *args, **kwargs: ["one.py", "two.py", "three.py"])
+def test_list_dataset_file_metadata_uses_recursive_dataset_tree(monkeypatch):
+    calls = {}
+
+    class FakeApi:
+        def __init__(self, token):
+            calls["token"] = token
+
+        def list_repo_tree(self, **kwargs):
+            calls["kwargs"] = kwargs
+            return [SimpleNamespace(path="loader.py", size=12)]
+
+    monkeypatch.setattr(fetch, "HfApi", FakeApi)
+
+    assert fetch.list_dataset_file_metadata("owner/dataset", revision="v1", token="secret") == [
+        SimpleNamespace(path="loader.py", size=12)
+    ]
+    assert calls == {
+        "token": "secret",
+        "kwargs": {
+            "repo_id": "owner/dataset", "repo_type": "dataset", "revision": "v1", "recursive": True
+        },
+    }
+
+
+def test_download_skips_oversized_files_before_download_and_truncates(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(
+        fetch,
+        "list_dataset_file_metadata",
+        lambda *args, **kwargs: [
+            SimpleNamespace(path="one.py", size=10),
+            SimpleNamespace(path="too-large.py", size=11),
+            SimpleNamespace(path="two.py", size=10),
+            SimpleNamespace(path="unknown-size.py", size=None),
+            SimpleNamespace(path="three.py", size=10),
+        ],
+    )
     monkeypatch.setattr(fetch.tempfile, "mkdtemp", lambda prefix: str(tmp_path / "download"))
     calls = []
     response = httpx.Response(404, request=httpx.Request("GET", "https://example.test"))
@@ -60,7 +95,9 @@ def test_download_truncates_file_list_and_continues_after_file_error(tmp_path: P
 
     monkeypatch.setattr(fetch, "hf_hub_download", fake_download)
 
-    assert fetch.download_dataset_repo("owner/dataset", revision="v1", max_files=2, token="secret") == tmp_path / "download"
+    assert fetch.download_dataset_repo(
+        "owner/dataset", revision="v1", max_files=2, max_file_size_bytes=10, token="secret"
+    ) == tmp_path / "download"
     assert [call["filename"] for call in calls] == ["one.py", "two.py"]
     assert all(call["repo_id"] == "owner/dataset" for call in calls)
     assert all(call["repo_type"] == "dataset" for call in calls)

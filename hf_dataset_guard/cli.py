@@ -34,7 +34,7 @@ def _add_scan_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--max-file-size", type=int, default=DEFAULT_MAX_FILE_SIZE_BYTES,
-        help=f"Skip scanning any single file above this size in bytes (default: {DEFAULT_MAX_FILE_SIZE_BYTES})",
+        help=f"Skip local files and avoid downloading remote files above this size in bytes (default: {DEFAULT_MAX_FILE_SIZE_BYTES})",
     )
     parser.add_argument(
         "--token", default=None,
@@ -69,6 +69,7 @@ def main(argv=None) -> int:
                 args.target,
                 revision=args.revision,
                 max_files=args.max_files,
+                max_file_size_bytes=args.max_file_size,
                 token=args.token,
             )
             findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)
