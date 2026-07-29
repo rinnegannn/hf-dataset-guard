@@ -56,7 +56,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 - [ ] Add coverage reporting and set a meaningful minimum coverage threshold.
 - [ ] Add linting, formatting, type checking, and security/dependency checks
   to CI (for example Ruff, mypy, and pip-audit).
-- [ ] Run the test suite across supported Python versions in GitHub Actions.
+- [x] Run the test suite across supported Python versions in GitHub Actions.
 
 ## Professional repository polish
 
