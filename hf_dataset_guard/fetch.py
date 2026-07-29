@@ -54,6 +54,7 @@ def download_dataset_repo(
     max_files: int = DEFAULT_MAX_FILES_TO_FETCH,
     token: str | None = None,
     max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
+    incomplete_reasons: list[str] | None = None,
 ) -> Path:
     """Download every file in a dataset repo into a fresh temp directory
     and return its path. Caller is responsible for cleanup.
@@ -62,14 +63,29 @@ def download_dataset_repo(
     to the HF_TOKEN environment variable / cached `huggingface-cli login`
     credentials automatically -- needed for private or gated datasets.
     """
-    files = [
-        entry.path
-        for entry in list_dataset_file_metadata(repo_id, revision=revision, token=token)
-        if isinstance(getattr(entry, "path", None), str)
-        and isinstance(getattr(entry, "size", None), int)
-        and 0 <= entry.size <= max_file_size_bytes
-    ]
+    def record_incomplete(reason: str) -> None:
+        if incomplete_reasons is not None:
+            incomplete_reasons.append(reason)
+
+    files: list[str] = []
+    for entry in list_dataset_file_metadata(repo_id, revision=revision, token=token):
+        path = getattr(entry, "path", None)
+        if not isinstance(path, str):
+            continue
+        size = getattr(entry, "size", None)
+        if not isinstance(size, int) or size < 0:
+            record_incomplete(f"Skipped remote file with unknown size: {path}")
+            continue
+        if size > max_file_size_bytes:
+            record_incomplete(
+                f"Skipped remote file exceeding --max-file-size ({max_file_size_bytes} bytes): {path}"
+            )
+            continue
+        files.append(path)
     if len(files) > max_files:
+        record_incomplete(
+            f"Skipped {len(files) - max_files} remote file(s) due to --max-files={max_files}"
+        )
         files = files[:max_files]
 
     dest_root = Path(tempfile.mkdtemp(prefix="hf-dataset-guard-"))
@@ -86,5 +102,6 @@ def download_dataset_repo(
             )
         except HfHubHTTPError:
             # A single missing/gated file shouldn't abort the whole scan.
+            record_incomplete(f"Could not download remote file: {filename}")
             continue
     return dest_root

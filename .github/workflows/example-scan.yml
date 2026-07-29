@@ -19,7 +19,7 @@ jobs:
         run: pip install hf-dataset-guard
 
       - name: Scan dataset
-        run: hf-dataset-guard scan "${{ github.event.inputs.dataset }}" --format json --output report.json --fail-on high
+        run: hf-dataset-guard scan "${{ github.event.inputs.dataset }}" --format json --output report.json --fail-on high --fail-on-incomplete
 
       - name: Upload report
         if: always()

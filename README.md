@@ -55,6 +55,9 @@ hf-dataset-guard scan username/dataset --format json --output report.json
 # CI: fail the build if risk reaches "high" or above
 hf-dataset-guard scan username/dataset --fail-on high
 
+# CI: also fail if any file could not be inspected
+hf-dataset-guard scan username/dataset --fail-on high --fail-on-incomplete
+
 # Pin a revision
 hf-dataset-guard scan username/dataset --revision 4f36a90
 
@@ -94,6 +97,7 @@ Note: static analysis only. No file from this repo was executed or imported.
 | `0` | Scan completed and threshold was not reached |
 | `1` | A finding reached the configured `--fail-on` threshold |
 | `2` | Target could not be scanned (bad repo id, network error, etc.) |
+| `3` | Scan was incomplete and `--fail-on-incomplete` was specified |
 
 ## GitHub Action
 

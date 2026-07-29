@@ -12,6 +12,8 @@ class ScanResult:
     findings: List[Finding]
     score: int
     risk_level: str
+    scan_complete: bool = True
+    incomplete_reasons: List[str] | None = None
 
 
 def score_findings(findings: List[Finding]) -> tuple[int, str]:
@@ -40,6 +42,16 @@ def score_findings(findings: List[Finding]) -> tuple[int, str]:
     return score, level
 
 
-def build_result(repo_id: str, findings: List[Finding]) -> ScanResult:
+def build_result(
+    repo_id: str, findings: List[Finding], incomplete_reasons: List[str] | None = None
+) -> ScanResult:
     score, level = score_findings(findings)
-    return ScanResult(repo_id=repo_id, findings=findings, score=score, risk_level=level)
+    reasons = incomplete_reasons or []
+    return ScanResult(
+        repo_id=repo_id,
+        findings=findings,
+        score=score,
+        risk_level=level,
+        scan_complete=not reasons,
+        incomplete_reasons=reasons,
+    )

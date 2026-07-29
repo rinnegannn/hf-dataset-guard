@@ -14,6 +14,7 @@ from .report import render_terminal, render_json
 #   0 - scan completed, threshold (if any) not reached
 #   1 - a finding reached the configured --fail-on threshold
 #   2 - target could not be scanned (bad repo id, network error, etc.)
+#   3 - scan was incomplete and --fail-on-incomplete was requested
 FAIL_ON_THRESHOLDS = {"low": 1, "medium": 15, "high": 40, "critical": 70}
 
 
@@ -27,6 +28,11 @@ def _add_scan_args(parser: argparse.ArgumentParser) -> None:
         choices=["low", "medium", "high", "critical", "none"],
         default="none",
         help="Exit 1 if risk reaches this level or higher (for CI use).",
+    )
+    parser.add_argument(
+        "--fail-on-incomplete",
+        action="store_true",
+        help="Exit 3 when any file was omitted from the scan (for CI use).",
     )
     parser.add_argument(
         "--max-files", type=int, default=DEFAULT_MAX_FILES_TO_FETCH,
@@ -60,10 +66,15 @@ def main(argv=None) -> int:
 
     is_local = Path(args.target).is_dir()
     local_dir = None
+    incomplete_reasons: list[str] = []
     try:
         if is_local:
             local_dir = Path(args.target)
-            findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)
+            findings = scan_directory(
+                local_dir,
+                max_file_size_bytes=args.max_file_size,
+                incomplete_reasons=incomplete_reasons,
+            )
         else:
             local_dir = download_dataset_repo(
                 args.target,
@@ -71,9 +82,14 @@ def main(argv=None) -> int:
                 max_files=args.max_files,
                 max_file_size_bytes=args.max_file_size,
                 token=args.token,
+                incomplete_reasons=incomplete_reasons,
             )
-            findings = scan_directory(local_dir, max_file_size_bytes=args.max_file_size)
-        result = build_result(args.target, findings)
+            findings = scan_directory(
+                local_dir,
+                max_file_size_bytes=args.max_file_size,
+                incomplete_reasons=incomplete_reasons,
+            )
+        result = build_result(args.target, findings, incomplete_reasons)
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 2
@@ -90,6 +106,8 @@ def main(argv=None) -> int:
     else:
         print(output_text)
 
+    if args.fail_on_incomplete and not result.scan_complete:
+        return 3
     if args.fail_on != "none" and result.score >= FAIL_ON_THRESHOLDS[args.fail_on]:
         return 1
     return 0

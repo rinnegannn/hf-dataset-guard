@@ -96,6 +96,22 @@ def test_large_python_files_respect_max_file_size(tmp_path: Path):
     assert not any(f.rule_id == "CODE004" for f in findings)
 
 
+def test_omitted_local_files_make_scan_incomplete_in_reports(tmp_path: Path):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "large.py").write_text("eval('must not be scanned')")
+    incomplete_reasons = []
+
+    findings = scan_directory(dataset, max_file_size_bytes=1, incomplete_reasons=incomplete_reasons)
+    result = build_result("test/large", findings, incomplete_reasons)
+
+    assert result.scan_complete is False
+    assert "Scan status: INCOMPLETE" in render_terminal(result)
+    payload = json.loads(render_json(result))
+    assert payload["scan_complete"] is False
+    assert any("large.py" in reason for reason in payload["incomplete_reasons"])
+
+
 if __name__ == "__main__":
     # Minimal runner so this works even without pytest installed.
     import traceback

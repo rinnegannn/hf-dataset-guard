@@ -10,7 +10,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 - [ ] Report every skipped, failed, or omitted file for local and remote scans,
   including when `--max-files` truncates a repository listing, a file exceeds
   a limit, or directory traversal fails.
-- [ ] Make incomplete scans explicit in text and JSON output for local and
+- [x] Make incomplete scans explicit in text and JSON output for local and
   remote targets, and provide a distinct CI exit code or an opt-in
   `--fail-on-incomplete` flag.
 - [x] Validate CLI numeric options (`--max-files`, `--max-file-size`) as

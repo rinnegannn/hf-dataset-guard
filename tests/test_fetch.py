@@ -95,11 +95,17 @@ def test_download_skips_oversized_files_before_download_and_truncates(tmp_path: 
 
     monkeypatch.setattr(fetch, "hf_hub_download", fake_download)
 
+    incomplete_reasons = []
     assert fetch.download_dataset_repo(
-        "owner/dataset", revision="v1", max_files=2, max_file_size_bytes=10, token="secret"
+        "owner/dataset", revision="v1", max_files=2, max_file_size_bytes=10, token="secret",
+        incomplete_reasons=incomplete_reasons,
     ) == tmp_path / "download"
     assert [call["filename"] for call in calls] == ["one.py", "two.py"]
     assert all(call["repo_id"] == "owner/dataset" for call in calls)
     assert all(call["repo_type"] == "dataset" for call in calls)
     assert all(call["revision"] == "v1" for call in calls)
     assert all(call["token"] == "secret" for call in calls)
+    assert any("too-large.py" in reason for reason in incomplete_reasons)
+    assert any("unknown-size.py" in reason for reason in incomplete_reasons)
+    assert any("--max-files=2" in reason for reason in incomplete_reasons)
+    assert any("two.py" in reason for reason in incomplete_reasons)

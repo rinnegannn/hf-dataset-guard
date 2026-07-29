@@ -33,7 +33,7 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
     downloaded.mkdir()
     calls = {}
 
-    def fake_download(repo_id, revision, max_files, max_file_size_bytes, token):
+    def fake_download(repo_id, revision, max_files, max_file_size_bytes, token, incomplete_reasons):
         calls.update(repo_id=repo_id, revision=revision, max_files=max_files, max_file_size_bytes=max_file_size_bytes, token=token)
         return downloaded
 
@@ -41,7 +41,7 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
     monkeypatch.setattr(
         cli,
         "scan_directory",
-        lambda root, max_file_size_bytes: [
+        lambda root, max_file_size_bytes, incomplete_reasons: [
             Finding("low", "test", "TEST001", "Test finding", "loader.py")
         ],
     )
@@ -55,6 +55,31 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
         "token": "token-value",
     }
     assert not downloaded.exists()
+
+
+def test_fail_on_incomplete_returns_three_and_writes_json_report(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "too-large.py").write_text("eval('must not be scanned')")
+    output = tmp_path / "report.json"
+
+    assert cli.main([
+        "scan", str(dataset), "--max-file-size", "1", "--fail-on-incomplete",
+        "--format", "json", "--output", str(output),
+    ]) == 3
+    assert capsys.readouterr().out == ""
+    report = json.loads(output.read_text())
+    assert report["scan_complete"] is False
+    assert any("too-large.py" in reason for reason in report["incomplete_reasons"])
+
+
+def test_complete_scan_is_explicit_in_terminal_output(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "loader.py").write_text("x = 1")
+
+    assert cli.main(["scan", str(dataset)]) == 0
+    assert "Scan status: COMPLETE" in capsys.readouterr().out
 
 
 def test_scan_error_returns_exit_code_two(tmp_path: Path, monkeypatch, capsys):

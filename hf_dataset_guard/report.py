@@ -26,6 +26,13 @@ def render_terminal(result: ScanResult) -> str:
     lines = []
     lines.append(f"{color}Risk: {result.risk_level} ({result.score}/100){RESET}")
     lines.append(f"Dataset: {result.repo_id}")
+    if result.scan_complete:
+        lines.append("Scan status: COMPLETE")
+    else:
+        lines.append("Scan status: INCOMPLETE")
+        lines.append("Warning: not every file in the target was inspected.")
+        for reason in result.incomplete_reasons or []:
+            lines.append(f"  - {reason}")
     lines.append("")
 
     if not result.findings:
@@ -57,6 +64,8 @@ def render_json(result: ScanResult) -> str:
         "repo_id": result.repo_id,
         "score": result.score,
         "risk_level": result.risk_level,
+        "scan_complete": result.scan_complete,
+        "incomplete_reasons": result.incomplete_reasons or [],
         "findings": [f.to_dict() for f in result.findings],
     }
     return json.dumps(payload, indent=2)

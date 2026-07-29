@@ -25,12 +25,12 @@ CLI (cli.py)
 
 | Component | Responsibility |
 | --- | --- |
-| `cli.py` | Parses the `scan` command, selects a local or remote target, applies failure thresholds, and selects text or JSON output. |
+| `cli.py` | Parses the `scan` command, selects a local or remote target, applies failure thresholds (including incomplete scans), and selects text or JSON output. |
 | `fetch.py` | Lists remote repository-tree metadata and downloads a bounded, size-eligible subset into a temporary directory using `huggingface_hub`. Failed individual downloads are skipped so one unavailable file does not end the scan. |
 | `scanner.py` | Walks a local directory, excludes known large data payloads, applies the configured per-file size limit, and dispatches readable files to the rule engine. |
 | `rules.py` | Defines the `Finding` model and detection rules. It uses file metadata, text matching, and lightweight Python AST inspection; parsing failures are treated as findings or safely contained rather than crashing the scan. |
-| `scorer.py` | Converts findings into an aggregate score and risk level. |
-| `report.py` | Renders a result as terminal text or JSON without changing scan results. |
+| `scorer.py` | Converts findings into an aggregate score, risk level, and scan-completeness status. |
+| `report.py` | Renders a result as terminal text or JSON, including completeness and omission reasons. |
 
 ## Data and trust boundaries
 
@@ -41,8 +41,9 @@ execute them. Downloaded files are not retained after a remote scan finishes.
 
 The current limits reduce scan scope: `--max-files` bounds eligible remote
 downloads, while `--max-file-size` bounds local scanning and filters remote
-files using repository metadata before download. Explicit incomplete-scan
-reporting remains planned work; see `TODO.md`.
+files using repository metadata before download. Every report declares whether
+the scan was complete and records omission reasons. CI can make partial scans
+fatal with `--fail-on-incomplete` (exit code 3).
 
 Findings pass one way from rules to scoring and reporting. Secrets detected in
 content are redacted before they are included in findings, so reports are safe
@@ -57,5 +58,4 @@ and fixture coverage. Keep network access in `fetch.py`, directory traversal in
 tests fast and prevents untrusted content from crossing unnecessary boundaries.
 
 Future planned extensions include rule suppressions through `.hfguard.yml`,
-SARIF reporting, stronger import/alias analysis, and complete-scan status
-reporting.
+SARIF reporting, and stronger import/alias analysis.
