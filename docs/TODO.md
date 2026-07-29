@@ -7,23 +7,27 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 - [x] Enforce a remote per-file download-size limit *before* downloading,
   using Hugging Face repository-tree metadata.
-- [ ] Report every skipped, failed, or omitted file for local and remote scans,
-  including when `--max-files` truncates a repository listing, a file exceeds
-  a limit, or directory traversal fails.
+- [ ] Report every skipped, failed, or omitted file for local and remote scans
+  ([#2](https://github.com/rinnegannn/hf-dataset-guard/issues/2),
+  [#34](https://github.com/rinnegannn/hf-dataset-guard/issues/34)), including
+  when `--max-files` truncates a repository listing, a file exceeds a limit,
+  directory traversal fails, or a local file cannot be read.
 - [x] Make incomplete scans explicit in text and JSON output for local and
   remote targets, and provide a distinct CI exit code or an opt-in
   `--fail-on-incomplete` flag.
 - [x] Validate CLI numeric options (`--max-files`, `--max-file-size`) as
   positive values and produce actionable errors.
 - [ ] Handle filesystem, network, and report-output errors consistently so
-  expected operational failures return exit code 2 rather than a traceback.
+  expected operational failures return exit code 2 rather than a traceback
+  ([#5](https://github.com/rinnegannn/hf-dataset-guard/issues/5)).
 - [x] Enforce scan-root containment for local targets: do not follow symlinks
   or read files that resolve outside the requested directory, and report
   skipped links.
 - [x] Apply a resource limit to Python source files as well as other file
   types; a large Python file must not bypass `--max-file-size`.
 - [ ] Record the resolved immutable Hugging Face commit SHA, tool version, and
-  rule-set version in every report so scan results are reproducible.
+  rule-set version in every report so scan results are reproducible
+  ([#33](https://github.com/rinnegannn/hf-dataset-guard/issues/33)).
 
 ## Priority 1 - detection quality and safety
 
