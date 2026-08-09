@@ -92,7 +92,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 ## Release readiness
 
-- [ ] Resolve all Priority 0 items before presenting scan results as complete.
+- [x] Resolve all Priority 0 items before presenting scan results as complete.
 - [ ] Perform a false-positive/false-negative review against a representative
   corpus of public dataset repositories.
 - [ ] Obtain an independent security review of the scanner and its supply
