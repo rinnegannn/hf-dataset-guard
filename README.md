@@ -6,7 +6,7 @@ Static security scanner for Hugging Face dataset repos.
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Repository](https://img.shields.io/badge/GitHub-hf--dataset--guard-181717?logo=github)](https://github.com/rinnegannn/hf-dataset-guard)
 [![CI](https://github.com/rinnegannn/hf-dataset-guard/actions/workflows/tests.yml/badge.svg)](https://github.com/rinnegannn/hf-dataset-guard/actions/workflows/tests.yml)
-[![PyPI](https://img.shields.io/pypi/v/hf-dataset-guard.svg)](https://pypi.org/project/hf-dataset-guard/)
+[![PyPI](https://img.shields.io/badge/PyPI-0.1.0-blue?logo=pypi)](https://pypi.org/project/hf-dataset-guard/)
 
 ```
 hf-dataset-guard scan username/dataset-name
