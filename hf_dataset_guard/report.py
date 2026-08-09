@@ -72,6 +72,8 @@ def render_json(result: ScanResult) -> str:
         "incomplete_reasons": result.incomplete_reasons or [],
         "provenance": result.provenance or {},
         "findings": [f.to_dict() for f in result.findings],
+        "suppressed_findings": [f.to_dict() for f in result.suppressed_findings or []],
+        "new_findings": [f.to_dict() for f in result.new_findings or []],
     }
     return json.dumps(payload, indent=2)
 

@@ -10,6 +10,7 @@ never imports or runs the code it is scanning.
 from __future__ import annotations
 
 import ast
+import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -187,6 +188,29 @@ def check_secrets(rel_path: str, text: str) -> list[Finding]:
                     evidence=_redact(m.group(0)),
                 )
             )
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if "hfguard: allow-secret" in line:
+            continue
+        name, separator, value = line.partition("=")
+        candidate = value.strip().strip("\"'") if separator else ""
+        if (
+            re.search(r"(?:secret|token|api[_-]?key|password)", name, re.IGNORECASE)
+            and len(candidate) >= 24
+            and re.fullmatch(r"[A-Za-z0-9+/=_-]+", candidate)
+            and _shannon_entropy(candidate) >= 4.0
+            and not any(pattern.search(candidate) for pattern, _, _ in SECRET_PATTERNS)
+        ):
+            findings.append(
+                Finding(
+                    severity="high",
+                    category="exposed_secret",
+                    rule_id="SECRET07",
+                    message="Possible high-entropy secret assigned to a sensitive variable.",
+                    file=rel_path,
+                    line=line_number,
+                    evidence=_redact(candidate),
+                )
+            )
     return findings
 
 
@@ -196,6 +220,13 @@ def _redact(secret: str) -> str:
     return secret[:4] + "...redacted..." + secret[-4:]
 
 
+def _shannon_entropy(value: str) -> float:
+    return -sum(
+        (count / len(value)) * math.log2(count / len(value))
+        for count in map(value.count, set(value))
+    )
+
+
 # --------------------------------------------------------------------------
 # Source-level checks (Python loader scripts, config files)
 # --------------------------------------------------------------------------
@@ -203,21 +234,66 @@ def _redact(secret: str) -> str:
 
 def check_template_injection(rel_path: str, text: str) -> list[Finding]:
     findings = []
-    for pattern in TEMPLATE_INJECTION_PATTERNS:
-        m = pattern.search(text)
-        if m:
-            line = text[: m.start()].count("\n") + 1
-            findings.append(
-                Finding(
-                    severity="high",
-                    category="template_injection",
-                    rule_id="CODE003",
-                    message="Dataset config/loader renders a template with data that may be attacker-controlled.",
-                    file=rel_path,
-                    line=line,
+    if re.search(r"\{\{.*\|.*safe.*\}\}", text):
+        return [_template_finding(rel_path, 1)]
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        tree = None
+    if tree:
+        tainted = {"config", "configuration", "settings", "params", "payload", "user_input"}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and _is_untrusted_expression(node.value):
+                tainted.update(target.id for target in node.targets if isinstance(target, ast.Name))
+            if isinstance(node, ast.Call) and (
+                (
+                    _is_template_sink(node.func)
+                    and node.args
+                    and _expression_uses_tainted(node.args[0], tainted)
                 )
-            )
-    return findings
+                or (
+                    isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "render"
+                    and any(
+                        _expression_uses_tainted(keyword.value, tainted)
+                        for keyword in node.keywords
+                    )
+                )
+            ):
+                findings.append(_template_finding(rel_path, node.lineno))
+        return findings
+    return []
+
+
+def _template_finding(rel_path: str, line: int) -> Finding:
+    return Finding(
+        severity="high",
+        category="template_injection",
+        rule_id="CODE003",
+        message="Template is constructed from config or untrusted input.",
+        file=rel_path,
+        line=line,
+    )
+
+
+def _is_untrusted_expression(node: ast.expr) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"get", "load", "loads"}
+    )
+
+
+def _expression_uses_tainted(node: ast.expr, tainted: set[str]) -> bool:
+    return any(isinstance(child, ast.Name) and child.id in tainted for child in ast.walk(node))
+
+
+def _is_template_sink(node: ast.expr) -> bool:
+    if isinstance(node, ast.Name):
+        return node.id == "Template"
+    if isinstance(node, ast.Attribute):
+        return node.attr in {"Template", "from_string"}
+    return False
 
 
 def check_remote_download(rel_path: str, text: str) -> list[Finding]:
@@ -241,7 +317,11 @@ def check_remote_download(rel_path: str, text: str) -> list[Finding]:
 
 def check_unsafe_dependency_install(rel_path: str, text: str) -> list[Finding]:
     findings = []
-    if UNPINNED_GIT_DEP.search(text):
+    if rel_path.lower() in {"requirements.txt", "requirements.in"}:
+        unpinned = any(_is_unpinned_requirement(line) for line in text.splitlines())
+    else:
+        unpinned = bool(UNPINNED_GIT_DEP.search(text))
+    if unpinned:
         findings.append(
             Finding(
                 severity="medium",
@@ -262,6 +342,18 @@ def check_unsafe_dependency_install(rel_path: str, text: str) -> list[Finding]:
             )
         )
     return findings
+
+
+def _is_unpinned_requirement(line: str) -> bool:
+    line = line.strip()
+    if not line or line.startswith(("#", "--")):
+        return False
+    line = line.split(" #", maxsplit=1)[0].removeprefix("-e ").strip()
+    if line.startswith("git+"):
+        return "@" not in line
+    if " @ " in line:
+        return "#sha256=" not in line and "#sha512=" not in line
+    return False
 
 
 def check_dangerous_calls_ast(rel_path: str, text: str) -> list[Finding]:

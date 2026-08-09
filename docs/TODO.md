@@ -33,16 +33,16 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 - [x] Add AST import/alias resolution (for example, `import subprocess as sp`
   and `from subprocess import run`) and detect relevant indirect calls.
-- [ ] Improve template-injection analysis so findings are tied to config or
+- [x] Improve template-injection analysis so findings are tied to config or
   untrusted input flow rather than every template use.
-- [ ] Add context-aware dependency parsing for requirements files, including
+- [x] Add context-aware dependency parsing for requirements files, including
   hashes, version pins, direct URLs, and editable installs.
-- [ ] Add entropy-based secret detection with allowlists and false-positive
+- [x] Add entropy-based secret detection with allowlists and false-positive
   controls.
-- [ ] Add rule allowlists/suppressions through `.hfguard.yml`, keyed by rule
+- [x] Add rule allowlists/suppressions through `.hfguard.yml`, keyed by rule
   ID and file path, with an audit trail in reports.
 - [x] Add SARIF output for GitHub code scanning.
-- [ ] Support commit-to-commit risk comparison and baseline reports.
+- [x] Support commit-to-commit risk comparison and baseline reports.
 - [x] Document rule coverage, expected false positives, and known detection
   limitations.
 

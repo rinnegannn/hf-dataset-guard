@@ -112,6 +112,35 @@ def test_sarif_output_contains_findings(tmp_path: Path, capsys):
     assert report["runs"][0]["results"][0]["ruleId"] == "CODE004"
 
 
+def test_config_suppression_is_audited_in_json(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "loader.py").write_text("eval('1 + 1')")
+    (dataset / ".hfguard.yml").write_text(
+        "suppressions:\n  - rule_id: CODE004\n    path: loader.py\n"
+    )
+
+    assert cli.main(["scan", str(dataset), "--format", "json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["findings"] == []
+    assert report["suppressed_findings"][0]["rule_id"] == "CODE004"
+
+
+def test_baseline_identifies_only_new_findings(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(
+        json.dumps({"findings": [{"rule_id": "CODE004", "file": "loader.py", "line": 1}]})
+    )
+    (dataset / "loader.py").write_text("eval('1 + 1')\nexec('2 + 2')")
+
+    assert cli.main(["scan", str(dataset), "--format", "json", "--baseline", str(baseline)]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert len(report["new_findings"]) == 1
+    assert report["new_findings"][0]["line"] == 2
+
+
 def test_fail_on_incomplete_returns_three_and_writes_json_report(tmp_path: Path, capsys):
     dataset = tmp_path / "dataset"
     dataset.mkdir()

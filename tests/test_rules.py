@@ -57,6 +57,14 @@ def test_non_secret_text_has_no_findings():
     assert check_secrets("README.md", "This dataset contains public images.") == []
 
 
+def test_entropy_secret_detection_requires_sensitive_name_and_allows_annotation():
+    token = "aP8mQ2xK7vNd4LsZ9cRf1WyU6hJ3bTeG"
+    findings = check_secrets("config.py", f"api_key = '{token}'")
+    assert [finding.rule_id for finding in findings] == ["SECRET07"]
+    assert check_secrets("config.py", f"label = '{token}'") == []
+    assert check_secrets("config.py", f"api_key = '{token}' # hfguard: allow-secret") == []
+
+
 @pytest.mark.parametrize(
     "source",
     [
@@ -69,6 +77,14 @@ def test_non_secret_text_has_no_findings():
 def test_template_patterns_are_detected(source):
     findings = check_template_injection("loader.py", source)
     assert findings and all(finding.rule_id == "CODE003" for finding in findings)
+
+
+def test_template_analysis_ignores_static_templates_and_tracks_config_flow():
+    assert check_template_injection("loader.py", "Template('hello').render()") == []
+    source = "config = json.loads(raw)\nTemplate(config).render()"
+    assert [finding.rule_id for finding in check_template_injection("loader.py", source)] == [
+        "CODE003"
+    ]
 
 
 @pytest.mark.parametrize(
@@ -99,6 +115,27 @@ def test_dependency_rules_distinguish_pinned_and_runtime_install():
     )
     findings = check_unsafe_dependency_install("loader.py", "subprocess.run('pip install thing')")
     assert [finding.rule_id for finding in findings] == ["DEP002"]
+
+
+def test_dependency_parser_handles_editable_direct_url_and_hashes():
+    assert (
+        check_unsafe_dependency_install(
+            "requirements.txt", "-e git+https://example.test/a.git@v1\n"
+        )
+        == []
+    )
+    assert (
+        check_unsafe_dependency_install(
+            "requirements.txt", "pkg @ https://example.test/pkg.whl#sha256=abc\n"
+        )
+        == []
+    )
+    assert [
+        f.rule_id
+        for f in check_unsafe_dependency_install(
+            "requirements.txt", "pkg @ https://example.test/pkg.whl\n"
+        )
+    ] == ["DEP001"]
 
 
 def test_dangerous_calls_and_safe_load_options():

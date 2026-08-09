@@ -14,6 +14,8 @@ class ScanResult:
     scan_complete: bool = True
     incomplete_reasons: list[str] | None = None
     provenance: dict[str, str | None] | None = None
+    suppressed_findings: list[Finding] | None = None
+    new_findings: list[Finding] | None = None
 
 
 def score_findings(findings: list[Finding]) -> tuple[int, str]:
@@ -47,6 +49,8 @@ def build_result(
     findings: list[Finding],
     incomplete_reasons: list[str] | None = None,
     provenance: dict[str, str | None] | None = None,
+    suppressed_findings: list[Finding] | None = None,
+    new_findings: list[Finding] | None = None,
 ) -> ScanResult:
     score, level = score_findings(findings)
     reasons = incomplete_reasons or []
@@ -58,4 +62,6 @@ def build_result(
         scan_complete=not reasons,
         incomplete_reasons=reasons,
         provenance=provenance,
+        suppressed_findings=suppressed_findings,
+        new_findings=new_findings,
     )

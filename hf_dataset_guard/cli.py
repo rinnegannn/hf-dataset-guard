@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .config import apply_suppressions, load_suppressions, new_findings_from_baseline
 from .fetch import DEFAULT_MAX_FILES_TO_FETCH, download_dataset_repo, resolve_dataset_commit
 from .report import render_json, render_sarif, render_terminal
 from .scanner import DEFAULT_MAX_FILE_SIZE_BYTES, scan_directory
@@ -33,6 +34,10 @@ def _add_scan_args(parser: argparse.ArgumentParser) -> None:
         help="Output format (default: text)",
     )
     parser.add_argument("--output", "-o", help="Write report to this file instead of stdout")
+    parser.add_argument("--config", help="Path to .hfguard.yml suppression configuration")
+    parser.add_argument(
+        "--baseline", help="Prior JSON report; identify findings new since that scan"
+    )
     parser.add_argument(
         "--fail-on",
         choices=["low", "medium", "high", "critical", "none"],
@@ -116,7 +121,20 @@ def main(argv: list[str] | None = None) -> int:
                 incomplete_reasons=incomplete_reasons,
             )
         result = build_result(args.target, findings, incomplete_reasons, provenance)
-    except (RuntimeError, OSError) as e:
+        config_path = Path(args.config) if args.config else local_dir / ".hfguard.yml"
+        findings, suppressed = apply_suppressions(result.findings, load_suppressions(config_path))
+        new_findings = (
+            new_findings_from_baseline(findings, Path(args.baseline)) if args.baseline else []
+        )
+        result = build_result(
+            args.target,
+            findings,
+            incomplete_reasons,
+            provenance,
+            suppressed_findings=suppressed,
+            new_findings=new_findings,
+        )
+    except (RuntimeError, OSError, TypeError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 2
     finally:
