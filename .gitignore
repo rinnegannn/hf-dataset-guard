@@ -5,4 +5,6 @@ build/
 dist/
 .venv/
 report.json
+.coverage
+skills-lock.json
 .agents/
