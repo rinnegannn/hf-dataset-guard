@@ -17,6 +17,12 @@ Use JSON output for artifacts or downstream tooling:
 hf-dataset-guard scan org/dataset --format json --output report.json
 ```
 
+For GitHub code scanning or any SARIF-aware service, emit a SARIF artifact:
+
+```bash
+hf-dataset-guard scan org/dataset --format sarif --output hfguard.sarif
+```
+
 The report includes `scan_complete` and `incomplete_reasons`. With
 `--fail-on-incomplete`, a partial scan returns exit code 3 even if no finding
 reaches the configured risk threshold.

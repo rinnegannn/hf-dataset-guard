@@ -11,25 +11,26 @@ from __future__ import annotations
 
 import ast
 import re
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List
 
 # --------------------------------------------------------------------------
 # Finding model
 # --------------------------------------------------------------------------
 
+
 @dataclass
 class Finding:
-    severity: str        # "critical" | "high" | "medium" | "low" | "info"
-    category: str        # short machine-friendly tag, e.g. "remote_code_exec"
-    rule_id: str          # stable ID, e.g. "CODE001" -- safe to reference in .hfguard.yml allowlists
-    message: str          # human-readable description
-    file: str             # relative path within the dataset repo
+    severity: str  # "critical" | "high" | "medium" | "low" | "info"
+    category: str  # short machine-friendly tag, e.g. "remote_code_exec"
+    rule_id: str  # stable ID, e.g. "CODE001" -- safe to reference in .hfguard.yml allowlists
+    message: str  # human-readable description
+    file: str  # relative path within the dataset repo
     line: int | None = None
     evidence: str | None = None  # short snippet, no full-file reproduction
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str | int | None]:
         return {
             "severity": self.severity,
             "category": self.category,
@@ -71,7 +72,11 @@ SECRET_PATTERNS = [
     (re.compile(r"gho_[A-Za-z0-9]{36}"), "GitHub OAuth token", "SECRET02"),
     (re.compile(r"sk-[A-Za-z0-9]{20,}"), "API secret key (OpenAI-style)", "SECRET03"),
     (re.compile(r"hf_[A-Za-z0-9]{30,}"), "Hugging Face access token", "SECRET04"),
-    (re.compile(r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----"), "Embedded private key", "SECRET05"),
+    (
+        re.compile(r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+        "Embedded private key",
+        "SECRET05",
+    ),
     (re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"), "Slack token", "SECRET06"),
 ]
 
@@ -96,7 +101,7 @@ DANGEROUS_MODULE_CALLS = {
     ("pickle", "loads"),
     ("marshal", "loads"),
     ("torch", "load"),  # only unsafe when weights_only is not explicitly True
-    ("yaml", "load"),   # unsafe unless Loader=yaml.SafeLoader
+    ("yaml", "load"),  # unsafe unless Loader=yaml.SafeLoader
 }
 
 TEMPLATE_INJECTION_PATTERNS = [
@@ -113,68 +118,75 @@ REMOTE_DOWNLOAD_PATTERNS = [
     re.compile(r"os\.system\([\"']\s*(curl|wget)"),
 ]
 
-UNPINNED_GIT_DEP = re.compile(
-    r"(?m)^\s*(?:-e\s+)?git\+(?:https?|git)://[^\s@]+(?:\s*(?:#.*)?)$"
-)
+UNPINNED_GIT_DEP = re.compile(r"(?m)^\s*(?:-e\s+)?git\+(?:https?|git)://[^\s@]+(?:\s*(?:#.*)?)$")
 
 
 # --------------------------------------------------------------------------
 # File-level checks (no source parsing required)
 # --------------------------------------------------------------------------
 
-def check_pickle_like_files(rel_path: str) -> List[Finding]:
+
+def check_pickle_like_files(rel_path: str) -> list[Finding]:
     ext = Path(rel_path).suffix.lower()
     if ext in PICKLE_LIKE_EXTENSIONS:
-        return [Finding(
-            severity="medium",
-            category="pickle_like_artifact",
-            rule_id="FILE001",
-            message=(
-                f"File uses a pickle-based serialization format ({ext}). "
-                "These can execute arbitrary code on load. Prefer .safetensors."
-            ),
-            file=rel_path,
-        )]
+        return [
+            Finding(
+                severity="medium",
+                category="pickle_like_artifact",
+                rule_id="FILE001",
+                message=(
+                    f"File uses a pickle-based serialization format ({ext}). "
+                    "These can execute arbitrary code on load. Prefer .safetensors."
+                ),
+                file=rel_path,
+            )
+        ]
     return []
 
 
-def check_unexpected_executable(rel_path: str, head_bytes: bytes) -> List[Finding]:
+def check_unexpected_executable(rel_path: str, head_bytes: bytes) -> list[Finding]:
     findings = []
     ext = Path(rel_path).suffix.lower()
     if ext in EXECUTABLE_EXTENSIONS:
-        findings.append(Finding(
-            severity="high",
-            category="unexpected_executable",
-            rule_id="FILE002",
-            message=f"Executable/script file present in dataset repo ({ext}).",
-            file=rel_path,
-        ))
+        findings.append(
+            Finding(
+                severity="high",
+                category="unexpected_executable",
+                rule_id="FILE002",
+                message=f"Executable/script file present in dataset repo ({ext}).",
+                file=rel_path,
+            )
+        )
         return findings
     for magic, label in MAGIC_BYTES.items():
         if head_bytes.startswith(magic):
-            findings.append(Finding(
-                severity="critical",
-                category="unexpected_executable",
-                rule_id="FILE002",
-                message=f"File has no executable extension but matches {label} magic bytes.",
-                file=rel_path,
-            ))
+            findings.append(
+                Finding(
+                    severity="critical",
+                    category="unexpected_executable",
+                    rule_id="FILE002",
+                    message=f"File has no executable extension but matches {label} magic bytes.",
+                    file=rel_path,
+                )
+            )
     return findings
 
 
-def check_secrets(rel_path: str, text: str) -> List[Finding]:
+def check_secrets(rel_path: str, text: str) -> list[Finding]:
     findings = []
     for pattern, label, rule_id in SECRET_PATTERNS:
         m = pattern.search(text)
         if m:
-            findings.append(Finding(
-                severity="critical",
-                category="exposed_secret",
-                rule_id=rule_id,
-                message=f"Possible {label} found in file contents.",
-                file=rel_path,
-                evidence=_redact(m.group(0)),
-            ))
+            findings.append(
+                Finding(
+                    severity="critical",
+                    category="exposed_secret",
+                    rule_id=rule_id,
+                    message=f"Possible {label} found in file contents.",
+                    file=rel_path,
+                    evidence=_redact(m.group(0)),
+                )
+            )
     return findings
 
 
@@ -188,89 +200,110 @@ def _redact(secret: str) -> str:
 # Source-level checks (Python loader scripts, config files)
 # --------------------------------------------------------------------------
 
-def check_template_injection(rel_path: str, text: str) -> List[Finding]:
+
+def check_template_injection(rel_path: str, text: str) -> list[Finding]:
     findings = []
     for pattern in TEMPLATE_INJECTION_PATTERNS:
         m = pattern.search(text)
         if m:
             line = text[: m.start()].count("\n") + 1
-            findings.append(Finding(
-                severity="high",
-                category="template_injection",
-                rule_id="CODE003",
-                message="Dataset config/loader renders a template with data that may be attacker-controlled.",
-                file=rel_path,
-                line=line,
-            ))
+            findings.append(
+                Finding(
+                    severity="high",
+                    category="template_injection",
+                    rule_id="CODE003",
+                    message="Dataset config/loader renders a template with data that may be attacker-controlled.",
+                    file=rel_path,
+                    line=line,
+                )
+            )
     return findings
 
 
-def check_remote_download(rel_path: str, text: str) -> List[Finding]:
+def check_remote_download(rel_path: str, text: str) -> list[Finding]:
     findings = []
     for pattern in REMOTE_DOWNLOAD_PATTERNS:
         m = pattern.search(text)
         if m:
             line = text[: m.start()].count("\n") + 1
-            findings.append(Finding(
-                severity="medium",
-                category="unpinned_remote_download",
-                rule_id="NET001",
-                message="Loader downloads content from a remote URL at runtime; verify it is pinned/hash-checked.",
-                file=rel_path,
-                line=line,
-            ))
+            findings.append(
+                Finding(
+                    severity="medium",
+                    category="unpinned_remote_download",
+                    rule_id="NET001",
+                    message="Loader downloads content from a remote URL at runtime; verify it is pinned/hash-checked.",
+                    file=rel_path,
+                    line=line,
+                )
+            )
     return findings
 
 
-def check_unsafe_dependency_install(rel_path: str, text: str) -> List[Finding]:
+def check_unsafe_dependency_install(rel_path: str, text: str) -> list[Finding]:
     findings = []
     if UNPINNED_GIT_DEP.search(text):
-        findings.append(Finding(
-            severity="medium",
-            category="unsafe_dependency",
-            rule_id="DEP001",
-            message="Unpinned git dependency (no @commit/tag) can silently change code after review.",
-            file=rel_path,
-        ))
+        findings.append(
+            Finding(
+                severity="medium",
+                category="unsafe_dependency",
+                rule_id="DEP001",
+                message="Unpinned git dependency (no @commit/tag) can silently change code after review.",
+                file=rel_path,
+            )
+        )
     if re.search(r"pip\s+install", text) and rel_path.endswith((".py",)):
-        findings.append(Finding(
-            severity="low",
-            category="unsafe_dependency",
-            rule_id="DEP002",
-            message="Loader script invokes pip install at runtime.",
-            file=rel_path,
-        ))
+        findings.append(
+            Finding(
+                severity="low",
+                category="unsafe_dependency",
+                rule_id="DEP002",
+                message="Loader script invokes pip install at runtime.",
+                file=rel_path,
+            )
+        )
     return findings
 
 
-def check_dangerous_calls_ast(rel_path: str, text: str) -> List[Finding]:
+def check_dangerous_calls_ast(rel_path: str, text: str) -> list[Finding]:
     """AST-based check for dangerous calls in Python source.
 
     Falls back silently if the file doesn't parse (e.g. Python 2, or not
     actually Python despite the .py extension) -- we don't want a parse
     error to crash the whole scan.
     """
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return findings
 
+    module_aliases: dict[str, str] = {}
+    imported_calls: dict[str, tuple[str, str]] = {}
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            for imported in statement.names:
+                module_aliases[imported.asname or imported.name] = imported.name
+        elif isinstance(statement, ast.ImportFrom) and statement.module:
+            for imported in statement.names:
+                imported_calls[imported.asname or imported.name] = (statement.module, imported.name)
+
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        module_attr = _resolve_call(func)
+        module_attr = _resolve_call(func, module_aliases, imported_calls)
         if module_attr is None:
             if isinstance(func, ast.Name) and func.id in ("eval", "exec", "compile", "__import__"):
-                findings.append(Finding(
-                    severity="critical",
-                    category="dangerous_call",
-                    rule_id="CODE004",
-                    message=f"Call to builtin {func.id}() can execute arbitrary code.",
-                    file=rel_path,
-                    line=getattr(node, "lineno", None),
-                ))
+                findings.append(
+                    Finding(
+                        severity="critical",
+                        category="dangerous_call",
+                        rule_id="CODE004",
+                        message=f"Call to builtin {func.id}() can execute arbitrary code.",
+                        file=rel_path,
+                        line=getattr(node, "lineno", None),
+                    )
+                )
             continue
         module, attr = module_attr
 
@@ -284,25 +317,33 @@ def check_dangerous_calls_ast(rel_path: str, text: str) -> List[Finding]:
                 continue
 
             rule_id = "CODE001" if module in ("subprocess", "os") else "CODE002"
-            findings.append(Finding(
-                severity=severity,
-                category="dangerous_call",
-                rule_id=rule_id,
-                message=f"Call to {module}.{attr}() can lead to arbitrary code execution.",
-                file=rel_path,
-                line=getattr(node, "lineno", None),
-            ))
+            findings.append(
+                Finding(
+                    severity=severity,
+                    category="dangerous_call",
+                    rule_id=rule_id,
+                    message=f"Call to {module}.{attr}() can lead to arbitrary code execution.",
+                    file=rel_path,
+                    line=getattr(node, "lineno", None),
+                )
+            )
     return findings
 
 
-def _resolve_call(func_node) -> tuple[str, str] | None:
-    """Return (module, attr) for calls like subprocess.run(...) or os.system(...)."""
+def _resolve_call(
+    func_node: ast.expr,
+    module_aliases: dict[str, str],
+    imported_calls: dict[str, tuple[str, str]],
+) -> tuple[str, str] | None:
+    """Return a canonical (module, attr), including straightforward imports."""
     if isinstance(func_node, ast.Attribute) and isinstance(func_node.value, ast.Name):
-        return (func_node.value.id, func_node.attr)
+        return (module_aliases.get(func_node.value.id, func_node.value.id), func_node.attr)
+    if isinstance(func_node, ast.Name):
+        return imported_calls.get(func_node.id)
     return None
 
 
-def _has_kwarg(call_node: ast.Call, name: str, expected) -> bool:
+def _has_kwarg(call_node: ast.Call, name: str, expected: object) -> bool:
     for kw in call_node.keywords:
         if kw.arg == name and isinstance(kw.value, ast.Constant):
             return kw.value.value == expected
@@ -323,14 +364,20 @@ def _has_safe_loader(call_node: ast.Call) -> bool:
 TEXT_SCANNABLE_EXTENSIONS = {".py", ".json", ".yaml", ".yml", ".txt", ".cfg", ".ini", ".md"}
 
 
-def scan_file(rel_path: str, absolute_path: Path) -> List[Finding]:
-    findings: List[Finding] = []
+def scan_file(
+    rel_path: str,
+    absolute_path: Path,
+    on_read_error: Callable[[OSError], None] | None = None,
+) -> list[Finding]:
+    findings: list[Finding] = []
     findings.extend(check_pickle_like_files(rel_path))
 
     try:
         with open(absolute_path, "rb") as fh:
             head = fh.read(16)
-    except OSError:
+    except OSError as error:
+        if on_read_error:
+            on_read_error(error)
         return findings
     findings.extend(check_unexpected_executable(rel_path, head))
 
@@ -338,7 +385,9 @@ def scan_file(rel_path: str, absolute_path: Path) -> List[Finding]:
     if ext in TEXT_SCANNABLE_EXTENSIONS:
         try:
             text = absolute_path.read_text(errors="ignore")
-        except OSError:
+        except OSError as error:
+            if on_read_error:
+                on_read_error(error)
             return findings
 
         findings.extend(check_secrets(rel_path, text))

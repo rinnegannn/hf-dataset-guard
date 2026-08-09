@@ -22,13 +22,12 @@ def test_list_dataset_files_uses_dataset_arguments(monkeypatch):
     monkeypatch.setattr(fetch, "HfApi", FakeApi)
 
     assert fetch.list_dataset_files("owner/dataset", revision="v1", token="secret") == [
-        "README.md", "loader.py"
+        "README.md",
+        "loader.py",
     ]
     assert calls == {
         "token": "secret",
-        "kwargs": {
-            "repo_id": "owner/dataset", "repo_type": "dataset", "revision": "v1"
-        },
+        "kwargs": {"repo_id": "owner/dataset", "repo_type": "dataset", "revision": "v1"},
     }
 
 
@@ -67,9 +66,25 @@ def test_list_dataset_file_metadata_uses_recursive_dataset_tree(monkeypatch):
     assert calls == {
         "token": "secret",
         "kwargs": {
-            "repo_id": "owner/dataset", "repo_type": "dataset", "revision": "v1", "recursive": True
+            "repo_id": "owner/dataset",
+            "repo_type": "dataset",
+            "revision": "v1",
+            "recursive": True,
         },
     }
+
+
+def test_resolve_dataset_commit_uses_repo_info(monkeypatch):
+    class FakeApi:
+        def __init__(self, token):
+            assert token == "secret"
+
+        def repo_info(self, **kwargs):
+            assert kwargs == {"repo_id": "owner/dataset", "repo_type": "dataset", "revision": "v1"}
+            return SimpleNamespace(sha="abc123")
+
+    monkeypatch.setattr(fetch, "HfApi", FakeApi)
+    assert fetch.resolve_dataset_commit("owner/dataset", "v1", "secret") == "abc123"
 
 
 def test_download_skips_oversized_files_before_download_and_truncates(tmp_path: Path, monkeypatch):
@@ -96,10 +111,17 @@ def test_download_skips_oversized_files_before_download_and_truncates(tmp_path: 
     monkeypatch.setattr(fetch, "hf_hub_download", fake_download)
 
     incomplete_reasons = []
-    assert fetch.download_dataset_repo(
-        "owner/dataset", revision="v1", max_files=2, max_file_size_bytes=10, token="secret",
-        incomplete_reasons=incomplete_reasons,
-    ) == tmp_path / "download"
+    assert (
+        fetch.download_dataset_repo(
+            "owner/dataset",
+            revision="v1",
+            max_files=2,
+            max_file_size_bytes=10,
+            token="secret",
+            incomplete_reasons=incomplete_reasons,
+        )
+        == tmp_path / "download"
+    )
     assert [call["filename"] for call in calls] == ["one.py", "two.py"]
     assert all(call["repo_id"] == "owner/dataset" for call in calls)
     assert all(call["repo_type"] == "dataset" for call in calls)

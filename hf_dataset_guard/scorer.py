@@ -1,30 +1,30 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
-from .rules import Finding, SEVERITY_WEIGHT
+from .rules import SEVERITY_WEIGHT, Finding
 
 
 @dataclass
 class ScanResult:
     repo_id: str
-    findings: List[Finding]
+    findings: list[Finding]
     score: int
     risk_level: str
     scan_complete: bool = True
-    incomplete_reasons: List[str] | None = None
+    incomplete_reasons: list[str] | None = None
+    provenance: dict[str, str | None] | None = None
 
 
-def score_findings(findings: List[Finding]) -> tuple[int, str]:
+def score_findings(findings: list[Finding]) -> tuple[int, str]:
     # Diminishing returns per additional finding of the same category so
     # one noisy file doesn't single-handedly max out the score.
     seen_categories: dict[str, int] = {}
-    total = 0
+    total = 0.0
     for f in findings:
         count = seen_categories.get(f.category, 0)
         weight = SEVERITY_WEIGHT[f.severity]
-        total += weight * (0.6 ** count)
+        total += weight * (0.6**count)
         seen_categories[f.category] = count + 1
 
     score = min(100, round(total))
@@ -43,7 +43,10 @@ def score_findings(findings: List[Finding]) -> tuple[int, str]:
 
 
 def build_result(
-    repo_id: str, findings: List[Finding], incomplete_reasons: List[str] | None = None
+    repo_id: str,
+    findings: list[Finding],
+    incomplete_reasons: list[str] | None = None,
+    provenance: dict[str, str | None] | None = None,
 ) -> ScanResult:
     score, level = score_findings(findings)
     reasons = incomplete_reasons or []
@@ -54,4 +57,5 @@ def build_result(
         risk_level=level,
         scan_complete=not reasons,
         incomplete_reasons=reasons,
+        provenance=provenance,
     )

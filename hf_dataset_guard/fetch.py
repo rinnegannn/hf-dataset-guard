@@ -34,18 +34,35 @@ def list_dataset_files(repo_id: str, revision: str = "main", token: str | None =
         raise RuntimeError(f"Could not list files for dataset '{repo_id}': {e}") from e
 
 
-def list_dataset_file_metadata(repo_id: str, revision: str = "main", token: str | None = None) -> list[object]:
+def list_dataset_file_metadata(
+    repo_id: str, revision: str = "main", token: str | None = None
+) -> list[object]:
     """Return recursive repository-tree entries, including each file's size."""
     api = HfApi(token=token)
     try:
-        return list(api.list_repo_tree(
-            repo_id=repo_id,
-            repo_type="dataset",
-            revision=revision,
-            recursive=True,
-        ))
+        return list(
+            api.list_repo_tree(
+                repo_id=repo_id,
+                repo_type="dataset",
+                revision=revision,
+                recursive=True,
+            )
+        )
     except HfHubHTTPError as e:
         raise RuntimeError(f"Could not list files for dataset '{repo_id}': {e}") from e
+
+
+def resolve_dataset_commit(
+    repo_id: str, revision: str = "main", token: str | None = None
+) -> str | None:
+    """Resolve a requested revision to the immutable commit recorded by HF."""
+    api = HfApi(token=token)
+    try:
+        info = api.repo_info(repo_id=repo_id, repo_type="dataset", revision=revision)
+    except HfHubHTTPError as e:
+        raise RuntimeError(f"Could not resolve revision for dataset '{repo_id}': {e}") from e
+    sha = getattr(info, "sha", None)
+    return sha if isinstance(sha, str) else None
 
 
 def download_dataset_repo(
@@ -63,6 +80,7 @@ def download_dataset_repo(
     to the HF_TOKEN environment variable / cached `huggingface-cli login`
     credentials automatically -- needed for private or gated datasets.
     """
+
     def record_incomplete(reason: str) -> None:
         if incomplete_reasons is not None:
             incomplete_reasons.append(reason)

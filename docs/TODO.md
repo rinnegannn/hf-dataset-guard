@@ -7,7 +7,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
 
 - [x] Enforce a remote per-file download-size limit *before* downloading,
   using Hugging Face repository-tree metadata.
-- [ ] Report every skipped, failed, or omitted file for local and remote scans
+- [x] Report every skipped, failed, or omitted file for local and remote scans
   ([#2](https://github.com/rinnegannn/hf-dataset-guard/issues/2),
   [#34](https://github.com/rinnegannn/hf-dataset-guard/issues/34)), including
   when `--max-files` truncates a repository listing, a file exceeds a limit,
@@ -17,7 +17,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
   `--fail-on-incomplete` flag.
 - [x] Validate CLI numeric options (`--max-files`, `--max-file-size`) as
   positive values and produce actionable errors.
-- [ ] Handle filesystem, network, and report-output errors consistently so
+- [x] Handle filesystem, network, and report-output errors consistently so
   expected operational failures return exit code 2 rather than a traceback
   ([#5](https://github.com/rinnegannn/hf-dataset-guard/issues/5)).
 - [x] Enforce scan-root containment for local targets: do not follow symlinks
@@ -25,13 +25,13 @@ v0.1 prototype to a dependable, professional open-source security tool.
   skipped links.
 - [x] Apply a resource limit to Python source files as well as other file
   types; a large Python file must not bypass `--max-file-size`.
-- [ ] Record the resolved immutable Hugging Face commit SHA, tool version, and
+- [x] Record the resolved immutable Hugging Face commit SHA, tool version, and
   rule-set version in every report so scan results are reproducible
   ([#33](https://github.com/rinnegannn/hf-dataset-guard/issues/33)).
 
 ## Priority 1 - detection quality and safety
 
-- [ ] Add AST import/alias resolution (for example, `import subprocess as sp`
+- [x] Add AST import/alias resolution (for example, `import subprocess as sp`
   and `from subprocess import run`) and detect relevant indirect calls.
 - [ ] Improve template-injection analysis so findings are tied to config or
   untrusted input flow rather than every template use.
@@ -41,7 +41,7 @@ v0.1 prototype to a dependable, professional open-source security tool.
   controls.
 - [ ] Add rule allowlists/suppressions through `.hfguard.yml`, keyed by rule
   ID and file path, with an audit trail in reports.
-- [ ] Add SARIF output for GitHub code scanning.
+- [x] Add SARIF output for GitHub code scanning.
 - [ ] Support commit-to-commit risk comparison and baseline reports.
 - [x] Document rule coverage, expected false positives, and known detection
   limitations.
@@ -57,16 +57,16 @@ v0.1 prototype to a dependable, professional open-source security tool.
 - [ ] Extend these tests alongside pending alias detection, real pagination,
   and private/gated repository handling.
 - [ ] Add regression fixtures for each previously fixed bug.
-- [ ] Add coverage reporting and set a meaningful minimum coverage threshold.
-- [ ] Add linting, formatting, type checking, and security/dependency checks
+- [x] Add coverage reporting and set a meaningful minimum coverage threshold.
+- [x] Add linting, formatting, type checking, and security/dependency checks
   to CI (for example Ruff, mypy, and pip-audit).
 - [x] Run the test suite across supported Python versions in GitHub Actions.
 
 ## Professional repository polish
 
-- [ ] Add a CI workflow that runs tests, linting, type checks, package build,
+- [x] Add a CI workflow that runs tests, linting, type checks, package build,
   and dependency/security checks on pull requests.
-- [ ] Add a release workflow that builds distributions, validates them, and
+- [x] Add a release workflow that builds distributions, validates them, and
   publishes tagged releases to PyPI.
 - [x] Add `CONTRIBUTING.md` with local setup, test commands, rule-design
   guidance, and pull-request expectations.
@@ -75,18 +75,18 @@ v0.1 prototype to a dependable, professional open-source security tool.
 - [x] Add `CODE_OF_CONDUCT.md`, `SECURITY.md` (private vulnerability reporting
   process), and issue/PR templates.
 - [x] Add a `CHANGELOG.md` and follow semantic versioning.
-- [ ] Declare supported Python versions and classifiers in `pyproject.toml`.
-- [ ] Add optional development dependencies and a single documented command
+- [x] Declare supported Python versions and classifiers in `pyproject.toml`.
+- [x] Add optional development dependencies and a single documented command
   for running all local checks.
-- [ ] Pin or constrain development tooling and document the dependency update
+- [x] Pin or constrain development tooling and document the dependency update
   policy.
 - [x] Add package metadata: project URLs, keywords, author/maintainer,
   license classifier, and a repository link.
-- [ ] Add a concise README badge set (CI, PyPI, Python versions, license),
+- [x] Add a concise README badge set (CI, PyPI, Python versions, license),
   installation verification, configuration reference, and JSON/SARIF examples.
 - [x] Publish a threat model and privacy statement explaining what is fetched,
   retained, logged, and never executed.
-- [ ] Add a tested installation smoke test from the built wheel in CI.
+- [x] Add a tested installation smoke test from the built wheel in CI.
 - [x] Create a `docs/` site or focused documentation pages for rules,
   configuration, CI integration, and release notes.
 
@@ -97,4 +97,4 @@ v0.1 prototype to a dependable, professional open-source security tool.
   corpus of public dataset repositories.
 - [ ] Obtain an independent security review of the scanner and its supply
   chain before a 1.0 release.
-- [ ] Define support, disclosure, and deprecation policies for releases.
+- [x] Define support, disclosure, and deprecation policies for releases.

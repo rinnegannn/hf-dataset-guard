@@ -1,12 +1,13 @@
 # Configuration reference
 
-`hf-dataset-guard` currently uses command-line options; `.hfguard.yml`
-suppression support is planned but is not implemented.
+`hf-dataset-guard` uses command-line options. Every report also records the
+requested revision, resolved remote commit (when available), tool version,
+and rule-set version so it can be reproduced later.
 
 | Option | Purpose |
 | --- | --- |
 | `--revision REVISION` | Remote dataset revision, defaulting to `main`. Prefer an immutable commit where possible. |
-| `--format {text,json}` | Select terminal or JSON output. |
+| `--format {text,json,sarif}` | Select terminal, JSON, or SARIF output. |
 | `--output PATH` | Write the report to a file. |
 | `--fail-on LEVEL` | Exit with code 1 at `low`, `medium`, `high`, or `critical`. |
 | `--fail-on-incomplete` | Exit with code 3 if any file was omitted from the scan. |

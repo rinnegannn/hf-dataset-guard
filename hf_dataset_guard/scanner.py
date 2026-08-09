@@ -8,7 +8,6 @@ engine unit-testable without hitting the Hugging Face API at all.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 from .rules import Finding, scan_file
 
@@ -22,7 +21,7 @@ def scan_directory(
     root: Path,
     max_file_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
     incomplete_reasons: list[str] | None = None,
-) -> List[Finding]:
+) -> list[Finding]:
     """Scan a directory and optionally record omissions that limit coverage.
 
     ``incomplete_reasons`` is an output parameter so callers that only need
@@ -30,7 +29,7 @@ def scan_directory(
     scan did not inspect every file in the requested target.
     """
     root = root.resolve()
-    findings: List[Finding] = []
+    findings: list[Finding] = []
 
     def record_incomplete(reason: str) -> None:
         if incomplete_reasons is not None:
@@ -44,13 +43,15 @@ def scan_directory(
         # harmless-looking file link is outside this scanner's trust boundary.
         if path.is_symlink():
             record_incomplete(f"Skipped symlink: {rel_path}")
-            findings.append(Finding(
-                severity="info",
-                category="scan_boundary",
-                rule_id="SCAN001",
-                message="Skipped symlink to keep the scan inside the requested directory.",
-                file=rel_path,
-            ))
+            findings.append(
+                Finding(
+                    severity="info",
+                    category="scan_boundary",
+                    rule_id="SCAN001",
+                    message="Skipped symlink to keep the scan inside the requested directory.",
+                    file=rel_path,
+                )
+            )
             continue
 
         try:
@@ -58,13 +59,15 @@ def scan_directory(
             resolved_path.relative_to(root)
         except ValueError:
             record_incomplete(f"Skipped path outside scan root: {rel_path}")
-            findings.append(Finding(
-                severity="info",
-                category="scan_boundary",
-                rule_id="SCAN001",
-                message="Skipped path that resolves outside the requested directory.",
-                file=rel_path,
-            ))
+            findings.append(
+                Finding(
+                    severity="info",
+                    category="scan_boundary",
+                    rule_id="SCAN001",
+                    message="Skipped path that resolves outside the requested directory.",
+                    file=rel_path,
+                )
+            )
             continue
         except OSError as error:
             record_incomplete(f"Could not resolve path {rel_path}: {error}")
@@ -86,5 +89,8 @@ def scan_directory(
             record_incomplete(f"Could not read metadata for {rel_path}: {error}")
             continue
 
-        findings.extend(scan_file(rel_path, resolved_path))
+        def on_read_error(error: OSError, rel_path: str = rel_path) -> None:
+            record_incomplete(f"Could not read local file {rel_path}: {error}")
+
+        findings.extend(scan_file(rel_path, resolved_path, on_read_error=on_read_error))
     return findings

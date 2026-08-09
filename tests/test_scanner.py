@@ -112,6 +112,29 @@ def test_omitted_local_files_make_scan_incomplete_in_reports(tmp_path: Path):
     assert any("large.py" in reason for reason in payload["incomplete_reasons"])
 
 
+def test_unreadable_local_file_is_reported_as_an_omission(tmp_path: Path, monkeypatch):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    unreadable = dataset / "unreadable.py"
+    unreadable.write_text("eval('not read')")
+
+    import hf_dataset_guard.scanner as scanner
+
+    original_scan_file = scanner.scan_file
+
+    def fail_read(rel_path, path, on_read_error=None):
+        if rel_path == "unreadable.py":
+            assert on_read_error is not None
+            on_read_error(OSError("permission denied"))
+            return []
+        return original_scan_file(rel_path, path, on_read_error)
+
+    monkeypatch.setattr(scanner, "scan_file", fail_read)
+    omissions = []
+    scan_directory(dataset, incomplete_reasons=omissions)
+    assert any("unreadable.py" in reason and "permission denied" in reason for reason in omissions)
+
+
 if __name__ == "__main__":
     # Minimal runner so this works even without pytest installed.
     import traceback

@@ -34,10 +34,17 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
     calls = {}
 
     def fake_download(repo_id, revision, max_files, max_file_size_bytes, token, incomplete_reasons):
-        calls.update(repo_id=repo_id, revision=revision, max_files=max_files, max_file_size_bytes=max_file_size_bytes, token=token)
+        calls.update(
+            repo_id=repo_id,
+            revision=revision,
+            max_files=max_files,
+            max_file_size_bytes=max_file_size_bytes,
+            token=token,
+        )
         return downloaded
 
     monkeypatch.setattr(cli, "download_dataset_repo", fake_download)
+    monkeypatch.setattr(cli, "resolve_dataset_commit", lambda *args, **kwargs: "deadbeef")
     monkeypatch.setattr(
         cli,
         "scan_directory",
@@ -46,15 +53,63 @@ def test_remote_scan_forwards_options_and_removes_download(tmp_path: Path, monke
         ],
     )
 
-    assert cli.main([
-        "scan", "owner/dataset", "--revision", "abc123", "--max-files", "12",
-        "--max-file-size", "34", "--token", "token-value",
-    ]) == 0
+    assert (
+        cli.main(
+            [
+                "scan",
+                "owner/dataset",
+                "--revision",
+                "abc123",
+                "--max-files",
+                "12",
+                "--max-file-size",
+                "34",
+                "--token",
+                "token-value",
+            ]
+        )
+        == 0
+    )
     assert calls == {
-        "repo_id": "owner/dataset", "revision": "abc123", "max_files": 12, "max_file_size_bytes": 34,
+        "repo_id": "owner/dataset",
+        "revision": "abc123",
+        "max_files": 12,
+        "max_file_size_bytes": 34,
         "token": "token-value",
     }
     assert not downloaded.exists()
+
+
+def test_output_error_returns_exit_code_two(tmp_path: Path, monkeypatch, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    monkeypatch.setattr(
+        Path, "write_text", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full"))
+    )
+
+    assert cli.main(["scan", str(dataset), "--output", str(tmp_path / "report.json")]) == 2
+    assert "could not write report" in capsys.readouterr().err
+
+
+def test_json_report_contains_reproducibility_provenance(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+
+    assert cli.main(["scan", str(dataset), "--format", "json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["provenance"]["tool_version"]
+    assert report["provenance"]["rule_set_version"] == "1"
+
+
+def test_sarif_output_contains_findings(tmp_path: Path, capsys):
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "loader.py").write_text("eval('1 + 1')")
+
+    assert cli.main(["scan", str(dataset), "--format", "sarif"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["version"] == "2.1.0"
+    assert report["runs"][0]["results"][0]["ruleId"] == "CODE004"
 
 
 def test_fail_on_incomplete_returns_three_and_writes_json_report(tmp_path: Path, capsys):
@@ -63,10 +118,22 @@ def test_fail_on_incomplete_returns_three_and_writes_json_report(tmp_path: Path,
     (dataset / "too-large.py").write_text("eval('must not be scanned')")
     output = tmp_path / "report.json"
 
-    assert cli.main([
-        "scan", str(dataset), "--max-file-size", "1", "--fail-on-incomplete",
-        "--format", "json", "--output", str(output),
-    ]) == 3
+    assert (
+        cli.main(
+            [
+                "scan",
+                str(dataset),
+                "--max-file-size",
+                "1",
+                "--fail-on-incomplete",
+                "--format",
+                "json",
+                "--output",
+                str(output),
+            ]
+        )
+        == 3
+    )
     assert capsys.readouterr().out == ""
     report = json.loads(output.read_text())
     assert report["scan_complete"] is False
@@ -83,7 +150,12 @@ def test_complete_scan_is_explicit_in_terminal_output(tmp_path: Path, capsys):
 
 
 def test_scan_error_returns_exit_code_two(tmp_path: Path, monkeypatch, capsys):
-    monkeypatch.setattr(cli, "download_dataset_repo", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("not found")))
+    monkeypatch.setattr(cli, "resolve_dataset_commit", lambda *args, **kwargs: "deadbeef")
+    monkeypatch.setattr(
+        cli,
+        "download_dataset_repo",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("not found")),
+    )
 
     assert cli.main(["scan", "owner/missing"]) == 2
     assert "Error: not found" in capsys.readouterr().err

@@ -91,9 +91,12 @@ def test_dependency_rules_distinguish_pinned_and_runtime_install():
         "requirements.txt", "git+https://example.test/org/project.git\n"
     )
     assert [finding.rule_id for finding in findings] == ["DEP001"]
-    assert check_unsafe_dependency_install(
-        "requirements.txt", "git+https://example.test/org/project.git@v1.2.3\n"
-    ) == []
+    assert (
+        check_unsafe_dependency_install(
+            "requirements.txt", "git+https://example.test/org/project.git@v1.2.3\n"
+        )
+        == []
+    )
     findings = check_unsafe_dependency_install("loader.py", "subprocess.run('pip install thing')")
     assert [finding.rule_id for finding in findings] == ["DEP002"]
 
@@ -114,6 +117,23 @@ yaml.load(text, Loader=yaml.SafeLoader)
         ("CODE001", 4),
         ("CODE002", 5),
         ("CODE004", 6),
+    }
+
+
+def test_dangerous_calls_resolve_import_aliases_and_from_imports():
+    source = """
+import subprocess as sp
+from os import system as run_command
+from pickle import loads
+sp.run(['echo', 'hello'])
+run_command('echo hello')
+loads(data)
+"""
+    findings = check_dangerous_calls_ast("loader.py", source)
+    assert {(finding.rule_id, finding.line) for finding in findings} == {
+        ("CODE001", 5),
+        ("CODE001", 6),
+        ("CODE002", 7),
     }
 
 

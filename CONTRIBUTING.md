@@ -16,10 +16,10 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-Run the full test suite with:
+Run the full local checks with:
 
 ```bash
-python -m pytest
+python -m pytest && python -m ruff check . && python -m ruff format --check . && python -m mypy hf_dataset_guard && python -m pip_audit
 ```
 
 To try the command-line interface against the included fixtures:

@@ -30,3 +30,19 @@ jobs:
 
       - name: Run tests
         run: python -m pytest
+
+      - name: Lint and format check
+        run: python -m ruff check . && python -m ruff format --check .
+
+      - name: Type check
+        run: python -m mypy hf_dataset_guard
+
+      - name: Dependency audit
+        run: python -m pip_audit
+
+      - name: Build package and smoke-test wheel
+        run: |
+          python -m build
+          python -m venv wheel-env
+          wheel-env/bin/python -m pip install dist/*.whl
+          wheel-env/bin/hf-dataset-guard scan --help

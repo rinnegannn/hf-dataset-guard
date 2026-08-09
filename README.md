@@ -5,6 +5,8 @@ Static security scanner for Hugging Face dataset repos.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Repository](https://img.shields.io/badge/GitHub-hf--dataset--guard-181717?logo=github)](https://github.com/rinnegannn/hf-dataset-guard)
+[![CI](https://github.com/rinnegannn/hf-dataset-guard/actions/workflows/tests.yml/badge.svg)](https://github.com/rinnegannn/hf-dataset-guard/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/hf-dataset-guard.svg)](https://pypi.org/project/hf-dataset-guard/)
 
 ```
 hf-dataset-guard scan username/dataset-name
@@ -51,6 +53,9 @@ hf-dataset-guard scan ./my-dataset
 
 # JSON output
 hf-dataset-guard scan username/dataset --format json --output report.json
+
+# SARIF output for GitHub code scanning
+hf-dataset-guard scan username/dataset --format sarif --output hfguard.sarif
 
 # CI: fail the build if risk reaches "high" or above
 hf-dataset-guard scan username/dataset --fail-on high
@@ -121,7 +126,6 @@ for a drop-in workflow that scans a dataset dependency before it's used in CI.
 
 ## Roadmap
 
-- SARIF output for GitHub code scanning
 - Rule allowlists via a `.hfguard.yml` file, keyed by rule ID
 - Entropy-based secret detection (catches secrets that don't match a known pattern)
 - Commit-to-commit risk comparison
@@ -136,12 +140,14 @@ test fixture demonstrating both the positive case and a plausible false positive
 
 ```bash
 pip install -e ".[dev]"
-python -m pytest
+python -m pytest && python -m ruff check . && python -m ruff format --check . && python -m mypy hf_dataset_guard && python -m pip_audit
 ```
 
 See the [contribution guide](CONTRIBUTING.md), [rules reference](docs/RULES.md),
 [configuration reference](docs/CONFIGURATION.md), [CI guide](docs/CI.md), and
-[threat model and privacy statement](docs/THREAT_MODEL.md).
+[threat model and privacy statement](docs/THREAT_MODEL.md). The
+[release policy](docs/RELEASE_POLICY.md) describes support, disclosure, and
+deprecation commitments.
 
 ## License
 

@@ -5,10 +5,13 @@ import shutil
 import sys
 from pathlib import Path
 
-from .fetch import DEFAULT_MAX_FILES_TO_FETCH, download_dataset_repo
+from . import __version__
+from .fetch import DEFAULT_MAX_FILES_TO_FETCH, download_dataset_repo, resolve_dataset_commit
+from .report import render_json, render_sarif, render_terminal
 from .scanner import DEFAULT_MAX_FILE_SIZE_BYTES, scan_directory
 from .scorer import build_result
-from .report import render_terminal, render_json
+
+RULE_SET_VERSION = "1"
 
 # Exit codes:
 #   0 - scan completed, threshold (if any) not reached
@@ -20,8 +23,15 @@ FAIL_ON_THRESHOLDS = {"low": 1, "medium": 15, "high": 40, "critical": 70}
 
 def _add_scan_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("target", help="Dataset repo (username/dataset) or a local directory path")
-    parser.add_argument("--revision", default="main", help="Git revision/branch for remote repos (default: main)")
-    parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format (default: text)")
+    parser.add_argument(
+        "--revision", default="main", help="Git revision/branch for remote repos (default: main)"
+    )
+    parser.add_argument(
+        "--format",
+        choices=["text", "json", "sarif"],
+        default="text",
+        help="Output format (default: text)",
+    )
     parser.add_argument("--output", "-o", help="Write report to this file instead of stdout")
     parser.add_argument(
         "--fail-on",
@@ -35,26 +45,33 @@ def _add_scan_args(parser: argparse.ArgumentParser) -> None:
         help="Exit 3 when any file was omitted from the scan (for CI use).",
     )
     parser.add_argument(
-        "--max-files", type=int, default=DEFAULT_MAX_FILES_TO_FETCH,
+        "--max-files",
+        type=int,
+        default=DEFAULT_MAX_FILES_TO_FETCH,
         help=f"Max number of files to download and scan from a remote repo (default: {DEFAULT_MAX_FILES_TO_FETCH})",
     )
     parser.add_argument(
-        "--max-file-size", type=int, default=DEFAULT_MAX_FILE_SIZE_BYTES,
+        "--max-file-size",
+        type=int,
+        default=DEFAULT_MAX_FILE_SIZE_BYTES,
         help=f"Skip local files and avoid downloading remote files above this size in bytes (default: {DEFAULT_MAX_FILE_SIZE_BYTES})",
     )
     parser.add_argument(
-        "--token", default=None,
+        "--token",
+        default=None,
         help="HF access token for private/gated datasets. Omit to use HF_TOKEN env var or cached login.",
     )
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="hf-dataset-guard",
         description="Static security scanner for Hugging Face dataset repos.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    scan_parser = subparsers.add_parser("scan", help="Scan a remote dataset repo or local directory")
+    scan_parser = subparsers.add_parser(
+        "scan", help="Scan a remote dataset repo or local directory"
+    )
     _add_scan_args(scan_parser)
 
     args = parser.parse_args(argv)
@@ -67,6 +84,12 @@ def main(argv=None) -> int:
     is_local = Path(args.target).is_dir()
     local_dir = None
     incomplete_reasons: list[str] = []
+    provenance = {
+        "requested_revision": args.revision if not is_local else None,
+        "resolved_commit": None,
+        "tool_version": __version__,
+        "rule_set_version": RULE_SET_VERSION,
+    }
     try:
         if is_local:
             local_dir = Path(args.target)
@@ -76,6 +99,9 @@ def main(argv=None) -> int:
                 incomplete_reasons=incomplete_reasons,
             )
         else:
+            provenance["resolved_commit"] = resolve_dataset_commit(
+                args.target, revision=args.revision, token=args.token
+            )
             local_dir = download_dataset_repo(
                 args.target,
                 revision=args.revision,
@@ -89,8 +115,8 @@ def main(argv=None) -> int:
                 max_file_size_bytes=args.max_file_size,
                 incomplete_reasons=incomplete_reasons,
             )
-        result = build_result(args.target, findings, incomplete_reasons)
-    except RuntimeError as e:
+        result = build_result(args.target, findings, incomplete_reasons, provenance)
+    except (RuntimeError, OSError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 2
     finally:
@@ -99,12 +125,20 @@ def main(argv=None) -> int:
         if local_dir is not None and not is_local:
             shutil.rmtree(local_dir, ignore_errors=True)
 
-    output_text = render_json(result) if args.format == "json" else render_terminal(result)
+    output_text = {
+        "json": render_json,
+        "sarif": render_sarif,
+        "text": render_terminal,
+    }[args.format](result)
 
-    if args.output:
-        Path(args.output).write_text(output_text)
-    else:
-        print(output_text)
+    try:
+        if args.output:
+            Path(args.output).write_text(output_text)
+        else:
+            print(output_text)
+    except OSError as e:
+        print(f"Error: could not write report: {e}", file=sys.stderr)
+        return 2
 
     if args.fail_on_incomplete and not result.scan_complete:
         return 3

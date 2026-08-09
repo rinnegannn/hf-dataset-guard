@@ -6,10 +6,10 @@ guarantee.
 
 | Rule | Coverage | Key limitations |
 | --- | --- | --- |
-| `CODE001` | Direct `subprocess` and `os` execution calls | Import aliases are not resolved yet. |
+| `CODE001` | `subprocess` and `os` execution calls, including direct import aliases | Dynamic dispatch and assignments are not resolved. |
 | `CODE002` | Unsafe pickle, Torch, marshal, and YAML load calls | Dynamic dispatch and non-Python loaders are not analysed. |
 | `CODE003` | Common Jinja template rendering patterns | It is pattern-based and may over-report safe template use. |
-| `CODE004` | Direct dynamic-execution builtins | Indirect aliases are not resolved yet. |
+| `CODE004` | Direct dynamic-execution builtins | Indirect aliases and dynamic dispatch are not resolved. |
 | `NET001` | Common runtime download calls | Custom clients and obfuscated code may be missed. |
 | `SECRET01-06` | Known token and private-key formats | Entropy detection and allowlists are planned. |
 | `FILE001-002` | Pickle-like files and executable signatures | File extension and magic-byte checks are not malware analysis. |
