@@ -126,9 +126,10 @@ for a drop-in workflow that scans a dataset dependency before it's used in CI.
 
 ## Roadmap
 
-- Rule allowlists via a `.hfguard.yml` file, keyed by rule ID
-- Entropy-based secret detection (catches secrets that don't match a known pattern)
-- Commit-to-commit risk comparison
+- v0.2: labelled evaluation corpus, precision/recall metrics, and false-positive tuning
+- v0.3: safe pickle opcode inspection, archive inspection, and expanded dependency analysis
+- v0.4: GitHub Marketplace Action and pull-request annotations
+- v1.0: validated detection benchmarks, stable rule API, and an independent security review
 
 ## Contributing
 
