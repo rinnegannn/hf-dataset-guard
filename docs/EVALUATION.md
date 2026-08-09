@@ -11,3 +11,16 @@ behaviour, not a precision/recall measurement: these repositories have no
 independent ground-truth labels for the scanner's rules. Issue #25 remains
 open until a labelled benign/malicious corpus and manual finding review are
 available.
+
+## Reproducible labelled evaluation
+
+Use a reviewed manifest with immutable revisions and ground-truth labels, then
+run:
+
+```bash
+python tools/evaluate_corpus.py docs/corpus-manifest.example.json evaluation-output
+```
+
+The script writes one JSON report per repository plus `summary.json`; reviewers
+can compare labels with findings and record false positives/negatives. Do not
+use the example manifest as data—it contains placeholders only.

@@ -1,0 +1,3 @@
+suppressions:
+  - rule_id: CODE001
+    path: alias_loader.py

@@ -1,11 +1,12 @@
+import json
 import sys
 from pathlib import Path
-import json
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from hf_dataset_guard import scanner
 from hf_dataset_guard.report import render_json, render_terminal
 from hf_dataset_guard.scanner import scan_directory
 from hf_dataset_guard.scorer import build_result
@@ -118,8 +119,6 @@ def test_unreadable_local_file_is_reported_as_an_omission(tmp_path: Path, monkey
     unreadable = dataset / "unreadable.py"
     unreadable.write_text("eval('not read')")
 
-    import hf_dataset_guard.scanner as scanner
-
     original_scan_file = scanner.scan_file
 
     def fail_read(rel_path, path, on_read_error=None):
@@ -135,18 +134,7 @@ def test_unreadable_local_file_is_reported_as_an_omission(tmp_path: Path, monkey
     assert any("unreadable.py" in reason and "permission denied" in reason for reason in omissions)
 
 
-if __name__ == "__main__":
-    # Minimal runner so this works even without pytest installed.
-    import traceback
-
-    tests = [obj for name, obj in list(globals().items()) if name.startswith("test_")]
-    failures = 0
-    for t in tests:
-        try:
-            t()
-            print(f"PASS {t.__name__}")
-        except Exception:
-            failures += 1
-            print(f"FAIL {t.__name__}")
-            traceback.print_exc()
-    sys.exit(1 if failures else 0)
+def test_regression_fixtures_cover_alias_template_dependency_and_entropy_rules():
+    findings = scan_directory(FIXTURES / "regressions")
+    assert {finding.rule_id for finding in findings} >= {"CODE001", "CODE003", "SECRET07"}
+    assert not any(finding.rule_id == "DEP001" for finding in findings)

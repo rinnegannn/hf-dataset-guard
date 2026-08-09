@@ -317,7 +317,7 @@ def check_remote_download(rel_path: str, text: str) -> list[Finding]:
 
 def check_unsafe_dependency_install(rel_path: str, text: str) -> list[Finding]:
     findings = []
-    if rel_path.lower() in {"requirements.txt", "requirements.in"}:
+    if Path(rel_path).name.lower() in {"requirements.txt", "requirements.in"}:
         unpinned = any(_is_unpinned_requirement(line) for line in text.splitlines())
     else:
         unpinned = bool(UNPINNED_GIT_DEP.search(text))

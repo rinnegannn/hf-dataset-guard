@@ -54,9 +54,9 @@ v0.1 prototype to a dependable, professional open-source security tool.
   remote cleanup, and operational errors.
 - [x] Mock Hugging Face API interactions for listing, download forwarding,
   truncation, and per-file download failures.
-- [ ] Extend these tests alongside pending alias detection, real pagination,
+- [x] Extend these tests alongside pending alias detection, real pagination,
   and private/gated repository handling.
-- [ ] Add regression fixtures for each previously fixed bug.
+- [x] Add regression fixtures for each previously fixed bug.
 - [x] Add coverage reporting and set a meaningful minimum coverage threshold.
 - [x] Add linting, formatting, type checking, and security/dependency checks
   to CI (for example Ruff, mypy, and pip-audit).

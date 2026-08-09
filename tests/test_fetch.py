@@ -74,6 +74,22 @@ def test_list_dataset_file_metadata_uses_recursive_dataset_tree(monkeypatch):
     }
 
 
+def test_list_dataset_file_metadata_consumes_paginated_iterator(monkeypatch):
+    class FakeApi:
+        def __init__(self, token):
+            assert token == "secret"
+
+        def list_repo_tree(self, **kwargs):
+            assert kwargs["recursive"] is True
+            yield SimpleNamespace(path="page-one.py", size=1)
+            yield SimpleNamespace(path="page-two.py", size=2)
+            yield SimpleNamespace(path="page-three.py", size=3)
+
+    monkeypatch.setattr(fetch, "HfApi", FakeApi)
+    entries = fetch.list_dataset_file_metadata("owner/dataset", token="secret")
+    assert [entry.path for entry in entries] == ["page-one.py", "page-two.py", "page-three.py"]
+
+
 def test_resolve_dataset_commit_uses_repo_info(monkeypatch):
     class FakeApi:
         def __init__(self, token):
@@ -85,6 +101,21 @@ def test_resolve_dataset_commit_uses_repo_info(monkeypatch):
 
     monkeypatch.setattr(fetch, "HfApi", FakeApi)
     assert fetch.resolve_dataset_commit("owner/dataset", "v1", "secret") == "abc123"
+
+
+def test_private_or_gated_repository_error_is_actionable(monkeypatch):
+    response = httpx.Response(401, request=httpx.Request("GET", "https://example.test"))
+
+    class FakeApi:
+        def __init__(self, token):
+            assert token == "provided-token"
+
+        def repo_info(self, **kwargs):
+            raise HfHubHTTPError("authentication required", response=response)
+
+    monkeypatch.setattr(fetch, "HfApi", FakeApi)
+    with pytest.raises(RuntimeError, match="Could not resolve revision"):
+        fetch.resolve_dataset_commit("private/dataset", token="provided-token")
 
 
 def test_download_skips_oversized_files_before_download_and_truncates(tmp_path: Path, monkeypatch):

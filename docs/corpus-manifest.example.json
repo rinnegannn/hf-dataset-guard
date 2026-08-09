@@ -1,0 +1,12 @@
+[
+  {
+    "repo_id": "owner/benign-dataset",
+    "revision": "immutable-commit-sha",
+    "label": "benign"
+  },
+  {
+    "repo_id": "owner/malicious-fixture-dataset",
+    "revision": "immutable-commit-sha",
+    "label": "malicious"
+  }
+]
