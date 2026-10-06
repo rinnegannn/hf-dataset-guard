@@ -7,6 +7,19 @@ from hf_dataset_guard import cli
 from hf_dataset_guard.rules import Finding
 
 
+def test_version_exits_without_scanning(monkeypatch, capsys):
+    def unexpected_scan(*args, **kwargs):
+        pytest.fail("Version checks must not scan or contact Hugging Face")
+
+    monkeypatch.setattr(cli, "resolve_dataset_commit", unexpected_scan)
+    monkeypatch.setattr(cli, "scan_directory", unexpected_scan)
+    with pytest.raises(SystemExit) as error:
+        cli.main(["--version"])
+
+    assert error.value.code == 0
+    assert capsys.readouterr().out == f"hf-dataset-guard {cli.__version__}\n"
+
+
 def test_local_scan_writes_json_report(tmp_path: Path, capsys):
     dataset = tmp_path / "dataset"
     dataset.mkdir()
