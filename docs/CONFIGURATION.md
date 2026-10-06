@@ -4,6 +4,10 @@
 requested revision, resolved remote commit (when available), tool version,
 and rule-set version so it can be reproduced later.
 
+Run `hf-dataset-guard --version` to check the installed tool version without
+scanning a target or contacting Hugging Face. Scan options below follow the
+`scan` subcommand.
+
 | Option | Purpose |
 | --- | --- |
 | `--revision REVISION` | Remote dataset revision, defaulting to `main`. Prefer an immutable commit where possible. |

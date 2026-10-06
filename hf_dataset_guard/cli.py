@@ -73,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="hf-dataset-guard",
         description="Static security scanner for Hugging Face dataset repos.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
     scan_parser = subparsers.add_parser(
         "scan", help="Scan a remote dataset repo or local directory"
