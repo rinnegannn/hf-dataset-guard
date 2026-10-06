@@ -21,6 +21,17 @@ run:
 python tools/evaluate_corpus.py docs/corpus-manifest.example.json evaluation-output
 ```
 
-The script writes one JSON report per repository plus `summary.json`; reviewers
-can compare labels with findings and record false positives/negatives. Do not
-use the example manifest as data—it contains placeholders only.
+The script writes one JSON report per manifest entry plus `summary.json`.
+Reports have an ordinal prefix (for example, `0001_owner__dataset.json`) so
+multiple revisions of one repository retain separate reports. Each summary
+entry includes its requested revision and report filename; reviewers can
+compare labels with findings and record false positives/negatives.
+
+When rerunning into the same output directory, each current entry's old report
+is removed before scanning. A failed scan does not reuse earlier results.
+The script continues through the corpus and exits with code 1 if any scan
+failed, preserving each scan's exit code in the summary. A completed scan can
+still be incomplete; review `scan_complete` separately. Reports left by entries
+removed from the manifest are not part of the current summary.
+
+Do not use the example manifest as data—it contains placeholders only.

@@ -25,10 +25,12 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("manifest must be a JSON list")
     args.output.mkdir(parents=True, exist_ok=True)
     summary = []
-    for entry in entries:
+    failed = False
+    for index, entry in enumerate(entries, start=1):
         repo_id = entry["repo_id"]
         revision = entry.get("revision", "main")
-        report_path = args.output / f"{repo_id.replace('/', '__')}.json"
+        report_path = args.output / f"{index:04d}_{repo_id.replace('/', '__')}.json"
+        report_path.unlink(missing_ok=True)
         completed = subprocess.run(
             [
                 sys.executable,
@@ -45,10 +47,17 @@ def main(argv: list[str] | None = None) -> int:
             ],
             check=False,
         )
-        report = json.loads(report_path.read_text()) if report_path.exists() else {}
+        failed = failed or completed.returncode != 0
+        report = (
+            json.loads(report_path.read_text())
+            if completed.returncode == 0 and report_path.exists()
+            else {}
+        )
         summary.append(
             {
                 "repo_id": repo_id,
+                "revision": revision,
+                "report_file": report_path.name,
                 "label": entry.get("label"),
                 "exit_code": completed.returncode,
                 "risk_level": report.get("risk_level"),
@@ -57,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2))
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
